@@ -27,6 +27,12 @@ Keep network access disabled unless the task explicitly requires it. Never push,
 6. Run `codex review --commit <checkpoint-sha>` directly. Fix valid findings with the same implementer and rerun relevant validation.
 7. Run read-only lean, tech-debt, process-debt, and wider-system wiring reviews in order. Repair and recheck each gate before continuing, with at most two attempts per gate.
 8. Run the relevant project validation directly against the final content. Create a final local commit only when review or wiring fixes changed files; otherwise keep the checkpoint as the final commit.
-9. Report the plan outcome, changed files, validation, review results, deferred work, local commits, and that nothing was pushed.
+9. Produce the change explanation below.
 
 Stop as blocked when a required model, agent, command, validation, or review gate is unavailable or fails its retry budget. Never claim a test, review, or commit happened when it did not.
+
+## Change explanation
+
+Have the supervisor finish with a plain-language summary of what changed, why it changed, how it works, validation performed, risks or limitations, deferred work, changed files, local commits, and that nothing was pushed. Do not spawn another agent for this summary.
+
+Add code comments only when they explain a non-obvious reason, invariant, or constraint. Never add comments that narrate the edit history or restate obvious code.

@@ -62,3 +62,9 @@ Run the final machine check before reporting success:
 ```bash
 python3 <skill-dir>/scripts/workflow_state.py check --run-dir <run-dir> --final
 ```
+
+## Change explanation
+
+Have the supervisor finish with a plain-language summary of what changed, why it changed, how it works, validation performed, risks or limitations, deferred work, changed files, local commits, and that nothing was pushed. Do not spawn another agent for this summary.
+
+Add code comments only when they explain a non-obvious reason, invariant, or constraint. Never add comments that narrate the edit history or restate obvious code.

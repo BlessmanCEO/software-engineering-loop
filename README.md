@@ -7,6 +7,8 @@ Two explicit Codex skills for implementing, validating, reviewing, and locally c
 
 Fast mode permits exactly one Sol/high writer. Full mode permits only its Sol/high `se-implementer` to edit task files. All Terra agents are read-only, workers never recursively delegate, and neither skill pushes, merges, or opens pull requests.
 
+Both skills end with a supervisor-written explanation of what changed, why, how it works, validation, risks, files, and commits. They add code comments only for non-obvious reasoning or constraints.
+
 ## Install
 
 ```bash

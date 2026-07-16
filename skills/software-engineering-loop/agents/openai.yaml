@@ -1,4 +1,0 @@
-interface:
-  display_name: "Software Engineering Loop"
-  short_description: "Plan, implement, review, and commit coding work locally"
-  default_prompt: "Run the software engineering loop for this coding task."

@@ -1,12 +1,6 @@
-# Workflow
+# Full workflow
 
-## Mode selection
-
-Use fast mode by default for bounded, low-risk coding tasks. The supervisor inspects the repository and scopes the task.
-
-Use full mode only for security, authentication, permissions, persistence, migrations, data-loss risk, architecture, shared or public contracts, deployment or build behavior, multiple dependent slices, ambiguous failures, or an explicit user request for full mode.
-
-In every mode, the only writable worker is `se-implementer` (`gpt-5.6-sol`, high reasoning). It performs all task and source file edits. `se-reviewer` is Sol/high and read-only. All Terra profiles are read-only. In full mode, the supervisor may directly create and update only `plan.md` and `slices/*.md`; mutate `state.json` only through `workflow_state.py`.
+The only writable worker is `se-implementer` (`gpt-5.6-sol`, high reasoning). It performs all task and source file edits. `se-reviewer` is Sol/high and read-only. All Terra profiles are read-only. The supervisor may directly create and update only `plan.md` and `slices/*.md`; mutate `state.json` only through `workflow_state.py`.
 
 ## Worker execution
 
@@ -19,25 +13,7 @@ python3 <skill-dir>/scripts/run_profile.py \
 
 The isolated runner applies the profile's exact model, reasoning, sandbox, and bundled execution policy, and disables recursive delegation. Never silently substitute a model or sandbox. Keep `agents.max_depth = 1` for native workers. Never run more than one writable worker in a working tree.
 
-## Fast mode
-
-1. Inspect applicable instructions, repository structure, status, relevant code, tests, and build commands.
-2. Refuse automatic commits in a dirty worktree unless the user identifies the existing changes that belong to the task.
-3. Scope the task directly. Never launch scouts or a planner in fast mode.
-4. Launch one `se-implementer` to make the smallest complete change.
-5. Run every applicable validation command directly. Stop with `blocked` if any command fails.
-6. Launch one `se-reviewer` for a read-only correctness, scope, and maintainability review.
-7. Stop with `blocked` if the initial review returns `blocked`. On `changes_requested`, send the findings to the same implementer for at most one repair round, rerun every applicable validation command, and launch one re-review. Stop with `blocked` if validation fails or the re-review does not return `pass`.
-8. Create one local commit when permitted only after every applicable validation command passes and the final `se-reviewer` returns `pass`. Otherwise report the completed work as uncommitted.
-9. Stop. Never push.
-
-Fast mode skips `workflow_state.py` records, scouts, planning agents, separate tech-debt and process-debt reviews, native `codex review`, checkpoint/final double commits, and repeated broad test runs.
-
-## Full mode
-
-Full mode keeps the durable state-and-evidence workflow below.
-
-### State flow
+## State flow
 
 ```text
 classify
@@ -55,9 +31,9 @@ Only three parts are agent feedback loops. Classification, state changes, valida
 
 Parallelize independent read-only runner calls through the available execution tool, not shell background tricks. Read-only Terra workers cannot approve implementation output; required gates use `se-reviewer`.
 
-### 1. Planning loop
+## 1. Planning loop
 
-For a task selected for full mode, use the planning loop. A bounded task can use one slice, but it still keeps the full state-and-evidence workflow.
+Use the planning loop. A bounded task can use one slice, but it still keeps the full state-and-evidence workflow.
 
 Run these read-only `se-scout` specialists in parallel, with the listed role in each prompt:
 
@@ -69,7 +45,7 @@ Give their outputs to one `se-planner`. The planner produces the objective, scop
 
 The supervisor rejects a plan that has overlapping slices, missing acceptance criteria, speculative future architecture, or slices that cannot be validated independently. Repair at most twice.
 
-### 2. Slice loop
+## 2. Slice loop
 
 Create one writable `se-implementer` thread for the current slice. It receives only the parent plan, current slice, relevant prior handoff, and specialist findings.
 
@@ -94,7 +70,7 @@ Check file size, responsibilities, readability, names, duplication, error states
 
 Check plan alignment, scope drift, acceptance criteria, recorded validation, assumptions, risks, docs, deferred work, and next-slice handoff. Do not hide unresolved items.
 
-### 3. Finalization loop
+## 3. Finalization loop
 
 After all slices pass:
 

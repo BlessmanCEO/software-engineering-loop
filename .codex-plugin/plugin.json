@@ -1,6 +1,6 @@
 {
   "name": "software-engineering-loop",
-  "version": "0.1.0+codex.20260716210807",
+  "version": "0.1.0+codex.20260716215026",
   "description": "A bounded, multi-agent software engineering workflow for Codex.",
   "author": {
     "name": "BlessmanCEO"
@@ -8,8 +8,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Software Engineering Loop",
-    "shortDescription": "Plan, implement, review, and commit locally",
-    "longDescription": "Runs coding work through planning, isolated slices, debt sweeps, Codex review, wiring review, and local-only commits.",
+    "shortDescription": "Choose a fast or fully audited coding loop",
+    "longDescription": "Provides separate fast and full software engineering skills so Codex never silently changes workflow modes.",
     "developerName": "BlessmanCEO",
     "category": "Productivity",
     "capabilities": [
@@ -19,8 +19,8 @@
       "Local commits"
     ],
     "defaultPrompt": [
-      "Run the software engineering loop for this task.",
-      "Fix this bug with the bounded review workflow."
+      "Use $software-engineering-loop-fast for this coding task.",
+      "Use $software-engineering-loop-full for this audited coding task."
     ]
   }
 }

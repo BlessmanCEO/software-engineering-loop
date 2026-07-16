@@ -1,0 +1,44 @@
+prefix_rule(
+    pattern = [["git", "/usr/bin/git", "/bin/git"], "push"],
+    decision = "forbidden",
+    justification = "This installation uses local-only commits; remove this rule explicitly before publishing.",
+    match = ["git push", "git push origin main"],
+)
+
+prefix_rule(
+    pattern = [["git", "/usr/bin/git", "/bin/git"], ["merge", "pull"]],
+    decision = "forbidden",
+    justification = "The software engineering loop does not merge branches.",
+    match = ["git merge feature", "git merge --no-ff feature"],
+)
+
+prefix_rule(
+    pattern = [["gh", "/usr/bin/gh", "/bin/gh"], "pr", "create"],
+    decision = "forbidden",
+    justification = "The software engineering loop does not open pull requests.",
+    match = ["gh pr create", "gh pr create --draft"],
+)
+
+prefix_rule(
+    pattern = [["git", "/usr/bin/git", "/bin/git"], "reset", "--hard"],
+    decision = "forbidden",
+    justification = "Use a non-destructive inspection or a user-approved targeted edit instead.",
+    match = ["git reset --hard", "git reset --hard HEAD~1"],
+)
+
+prefix_rule(
+    pattern = [["git", "/usr/bin/git", "/bin/git"], "restore"],
+    decision = "forbidden",
+    justification = "Use apply_patch or ask the user before discarding working-tree changes.",
+    match = ["git restore file.txt", "git restore --source HEAD file.txt"],
+)
+
+# Block global-option prefixes that can move a forbidden subcommand out of its normal position.
+prefix_rule(pattern = ["git", ["-C", "-c", "--no-pager"]], decision = "forbidden", justification = "Run Git from the repository working directory without global-option bypasses.")
+prefix_rule(pattern = ["gh", "--repo"], decision = "forbidden", justification = "The local-only workflow does not use repository-targeted GitHub mutations.")
+prefix_rule(pattern = [["git", "/usr/bin/git", "/bin/git"], ["--literal-pathspecs", "--glob-pathspecs", "--noglob-pathspecs", "--icase-pathspecs", "--git-dir", "--work-tree", "--namespace", "-p", "-P", "--paginate"]], decision = "forbidden", justification = "Global Git options cannot bypass local-only command guards.")
+prefix_rule(pattern = [["git", "/usr/bin/git", "/bin/git"], "send-pack"], decision = "forbidden", justification = "send-pack is a lower-level push operation.")
+prefix_rule(pattern = [["gh", "/usr/bin/gh", "/bin/gh"], "api"], decision = "forbidden", justification = "GitHub API calls can bypass pull-request mutation guards.")
+prefix_rule(pattern = ["git", ["-C.", "-cx=y", "--exec-path=/tmp"]], decision = "forbidden", justification = "Attached Git global options cannot bypass local-only command guards.")
+prefix_rule(pattern = [["/usr/bin/env", "/bin/env"], "git"], decision = "forbidden", justification = "Environment wrappers cannot bypass local-only Git command guards.")
+prefix_rule(pattern = [["gh", "/usr/bin/gh", "/bin/gh"], "-R"], decision = "forbidden", justification = "Repository-targeted GitHub commands are outside this local-only workflow.")

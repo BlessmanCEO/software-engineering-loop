@@ -1,0 +1,21 @@
+{
+  "name": "software-engineering-loop",
+  "interface": {
+    "displayName": "Software Engineering Loop"
+  },
+  "plugins": [
+    {
+      "name": "software-engineering-loop",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/BlessmanCEO/software-engineering-loop.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

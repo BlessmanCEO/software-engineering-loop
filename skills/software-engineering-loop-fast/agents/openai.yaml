@@ -1,6 +1,6 @@
 interface:
   display_name: "Software Engineering Loop Fast"
-  short_description: "Fast Sol/high coding with one review"
+  short_description: "Full engineering gates without audit scripts"
   default_prompt: "Use $software-engineering-loop-fast for this coding task."
 policy:
   allow_implicit_invocation: false

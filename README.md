@@ -2,8 +2,8 @@
 
 Two explicit Codex skills for implementing, validating, reviewing, and locally committing software changes. Neither skill silently switches to the other.
 
-- `$software-engineering-loop-fast`: script-free implement, validate, and review flow. It creates no workflow-state records and runs no bundled loop scripts. Relevant project test/build scripts are still allowed.
-- `$software-engineering-loop-full`: durable planning, state, audit evidence, debt gates, native Codex review, and wider-system wiring checks.
+- `$software-engineering-loop-fast`: the complete engineering workflow without bundled loop scripts or durable audit records. Planning, slices, validation, debt sweeps, Codex review, lean review, wiring review, and local commits still run.
+- `$software-engineering-loop-full`: the same engineering workflow with durable state, machine-bound audit evidence, and script-enforced transitions.
 
 Fast mode permits exactly one Sol/high writer. Full mode permits only its Sol/high `se-implementer` to edit task files. All Terra agents are read-only, workers never recursively delegate, and neither skill pushes, merges, or opens pull requests.
 
@@ -21,7 +21,7 @@ Use $software-engineering-loop-fast for this task.
 Use $software-engineering-loop-full for this task.
 ```
 
-Fast mode never uses the isolated runner. It requires the current session or a selectable native writer profile to be Sol/high. Full mode can use the isolated runner without copying agent profiles into `~/.codex`.
+Fast mode never uses the isolated runner or state helper. It requires the current session or a selectable native writer profile to be Sol/high. Full mode can use the isolated runner and state helper without copying agent profiles into `~/.codex`.
 
 ## Check the installation
 

@@ -1,6 +1,6 @@
 {
   "name": "software-engineering-loop",
-  "version": "0.1.0+codex.20260716215026",
+  "version": "0.1.0+codex.20260716220048",
   "description": "A bounded, multi-agent software engineering workflow for Codex.",
   "author": {
     "name": "BlessmanCEO"
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Software Engineering Loop",
     "shortDescription": "Choose a fast or fully audited coding loop",
-    "longDescription": "Provides separate fast and full software engineering skills so Codex never silently changes workflow modes.",
+    "longDescription": "Provides the same complete engineering gates in two explicit skills: fast omits audit scripts and records, while full enforces durable state and evidence.",
     "developerName": "BlessmanCEO",
     "category": "Productivity",
     "capabilities": [

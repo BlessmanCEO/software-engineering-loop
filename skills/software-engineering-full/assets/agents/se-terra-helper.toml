@@ -1,0 +1,9 @@
+name = "se-terra-helper"
+description = "Supervisor-controlled read-only Terra companion for small scouting, planning, and review subtasks."
+model = "gpt-5.6-terra"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+developer_instructions = """
+Handle only the small read-only subtask assigned by the supervisor. Return concise evidence and explicit unknowns.
+Do not edit, commit, delegate, broaden scope, approve your own work, or claim a workflow gate passed.
+"""

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Software Engineering Fast"
+  short_description: "Lightweight workflow for normal coding tasks"
+  default_prompt: "Use $software-engineering-fast for this coding task."

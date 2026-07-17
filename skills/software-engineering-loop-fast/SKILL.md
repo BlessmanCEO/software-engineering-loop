@@ -1,81 +1,38 @@
 ---
 name: software-engineering-loop-fast
-description: Run the lightweight software engineering workflow for small and medium coding tasks with contained risk, targeted validation, optional scouting, light slicing, unified review, commit-bound Codex review, and local commits. Use when the user invokes fast mode or requests the normal-delivery workflow without durable audit records. Never silently switch to full mode or push.
+description: Run the complete Codex software engineering loop without bundled loop scripts or durable audit records. Use when the user invokes fast mode and still wants scouting, planning, isolated slices, implementation, concise rationale comments, documentation, validation, debt sweeps, Codex review, wiring reviews, and local commits. Keep workflow state in the active thread, never switch to full mode, and never push.
 ---
 
 # Software Engineering Loop Fast
 
-Keep workflow state in the active thread. Do not run full-mode scripts or create `.codex/software-engineering/` records. Keep network access disabled unless the task requires it. Never push, merge, open a pull request, or run native Codex review against uncommitted changes.
+Run the complete engineering workflow in the active thread. Never invoke the full skill, run bundled software-engineering-loop scripts, or create `.codex/software-engineering/` records. Run project-owned tests, lint, typechecks, and builds directly. Run native Codex review only as `codex review --commit <checkpoint-sha>` against a clean local commit, never against uncommitted changes.
 
-## 1. Define the task
+Keep network access disabled unless the task explicitly requires it. Never push, merge, or open a pull request.
 
-Create a compact brief containing the objective, acceptance criteria, non-goals, constraints, expected files or components, and definition of done.
+## Agents
 
-## 2. Inspect only as needed
+- Use read-only `se-scout` agents for repository, test, and risk discovery and one read-only `se-planner` for the sliced dependency plan. Do not add a separate parallelism planner.
+- Use writable `se-implementer` agents, configured as `gpt-5.6-sol` with high reasoning, for complete slices: executable code, tests, necessary rationale comments, and maintained documentation. Reuse the same slice agent for repairs.
+- Run ready slices with disjoint likely files concurrently only in isolated Git worktrees. Integrate them into the primary worktree one at a time. Run overlapping or dependent slices sequentially.
+- Use read-only Sol/high `se-reviewer` agents for every approval gate. Terra agents may assist only with bounded read-only work and cannot approve gates.
+- Prefer installed native profiles. Never invoke `run_profile.py`, a state script, or any other bundled loop script in fast mode, and never mislabel an unconfigured model.
+- Keep subagent depth at one. Workers never delegate.
 
-For a very small task, let the implementer inspect the relevant code directly. Otherwise run only the necessary read-only scouts in parallel for repository structure, tests and validation commands, and risk or integration points.
+## Workflow
 
-## 3. Confirm the route
+1. Read applicable `AGENTS.md`; inspect the repository, relevant code, conventions, worktree, tests, and build commands.
+2. Classify the task. Run repository, test, and relevant risk scouts in parallel, then have the planner produce the smallest slices with scope, acceptance criteria, `depends_on`, likely files, risks, and validation. Keep this plan in the active thread only.
+3. Start every dependency-ready slice whose likely files do not overlap. Give each implementer only its slice, dependency handoffs, and an isolated Git worktree based on the same commit. Make the smallest complete change and keep files below the 500-line design warning unless a justified exception exists. Integrate completed worktrees sequentially; discard or rerun stale work when integration reveals a conflict or changed dependency.
+4. After all slices are integrated, complete all acceptance criteria and verify wider-system wiring. Create a local checkpoint commit only when unrelated worktree changes can be excluded safely.
+5. Run `codex review --commit <checkpoint-sha>` and the read-only lean, tech-debt, process-debt, and wider-system wiring reviews concurrently against that exact checkpoint. Never substitute `codex review --uncommitted`. Aggregate valid findings into one repair pass with the matching slice implementer.
+6. Recheck only affected gates after repairs, with at most two attempts per gate, then commit the repairs as a second local commit.
+7. Run the relevant project validation directly against the final content. If reviews made no changes, keep the checkpoint as the final commit.
+8. Produce the change explanation below.
 
-Stop fast mode and recommend restarting with full mode if inspection reveals authentication or authorization work, migrations, destructive data operations, a major public API change, infrastructure, security-sensitive code, complex concurrency, a large cross-package refactor, or formal audit requirements. Never switch modes silently.
+Stop as blocked when a required model, agent, command, validation, or review gate is unavailable or fails its retry budget. Never claim a test, review, or commit happened when it did not.
 
-## 4. Make the smallest plan
+## Change explanation
 
-Let the implementer keep a short internal plan for a small task. For a medium task, use one planner to define the smallest useful slices, dependencies, likely writable files, per-slice acceptance criteria, and targeted validation. Do not add a scheduling or parallelism agent.
+Have the supervisor finish with a plain-language summary of what changed, why it changed, how it works, validation performed, risks or limitations, deferred work, changed files, local commits, and that nothing was pushed. Do not spawn another agent for this summary.
 
-## 5. Reuse one context packet
-
-Give every worker the same packet instead of making each rediscover the repository:
-
-```yaml
-objective:
-acceptance_criteria:
-non_goals:
-relevant_files:
-architecture_notes:
-repository_conventions:
-validation_commands:
-invariants:
-known_risks:
-```
-
-## 6. Implement
-
-Use one Sol/high implementer per slice. It owns executable code, tests, necessary rationale comments, required documentation, and cleanup directly caused by the change. Independent slices with disjoint writable files may run concurrently only in isolated Git worktrees. Run dependent or overlapping slices sequentially. Workers never delegate.
-
-## 7. Validate in the worker
-
-Before integration, have the same implementer run the cheapest relevant unit tests, affected-file lint, package typecheck, or component build in its worktree. Do not integrate a slice whose targeted checks fail.
-
-## 8. Integrate sequentially
-
-Integrate prepared slices into the primary worktree one at a time. Confirm actual files match scope, no undeclared overlap or unrelated changes exist, dependency assumptions remain valid, and the patch is not stale.
-
-## 9. Review once per slice or batch
-
-Use one Sol/high reviewer call for a slice or integration batch. In one result, check acceptance criteria, correctness, regression risk, tests, wiring, maintainability, scope drift, and process issues. Do not split technical-debt and process-debt review into separate agents.
-
-## 10. Repair once
-
-Aggregate valid findings into one prompt for the original implementer. Rerun affected tests and recheck only affected review areas. Allow at most two repair rounds.
-
-## 11. Review a committed checkpoint
-
-When the task is complete and the non-record worktree is clean, create a local checkpoint commit. Concurrently run:
-
-- `codex review --commit <checkpoint-sha>`
-- one unified system reviewer against the same checkpoint
-
-Never use `codex review --uncommitted`. The unified reviewer checks end-to-end wiring, acceptance criteria, hidden TODOs, orphaned components, compatibility, documentation, and simplicity.
-
-## 12. Validate the final surface
-
-Choose validation by impact: targeted tests for a local change, affected package tests for shared code, dependent package tests for cross-package work, and wider builds or suites only for major integration changes. Do not run the entire repository suite by default.
-
-## 13. Commit and report
-
-If review repairs changed the checkpoint, create a second local commit after affected validation passes. Otherwise keep the checkpoint as final.
-
-Report what changed, why, how it works, tests, review results, risks, limitations, deferred work, files, local commits, and that nothing was pushed. Do not spawn a reporting agent.
-
-Stop as blocked when a required model, command, validation, or review is unavailable or two repair rounds fail. Never claim work or evidence that did not happen.
+The implementer must keep rationale comments concise. A paragraph-sized comment is normally a signal to simplify the code or move the explanation into documentation. Comments must never expose private chain-of-thought, narrate edit history, or restate obvious code.

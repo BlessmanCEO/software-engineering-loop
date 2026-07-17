@@ -1,17 +1,18 @@
-# Software Engineering Loop
+# Software Engineering Workflows
 
-Two explicit Codex skills for implementing, validating, reviewing, and locally committing software changes. Neither skill silently switches to the other.
+This plugin provides two original loop skills and two newer delivery workflows. Each is explicitly invoked and never silently switches to another.
 
-- `$software-engineering-loop-fast`: the complete engineering workflow without bundled loop scripts or durable audit records. Planning, slices, validation, debt sweeps, Codex review, lean review, wiring review, and local commits still run.
-- `$software-engineering-loop-full`: the same engineering workflow with durable state, machine-bound audit evidence, and script-enforced transitions.
+## Original loop skills
 
-Both modes use a Sol/high `se-implementer` for the complete slice, including necessary rationale comments and maintained documentation. Independent read-only work runs in parallel. Independent writable slices may run in parallel only in isolated Git worktrees and are integrated sequentially. Workers never recursively delegate, and neither skill pushes, merges, or opens pull requests.
+- `$software-engineering-loop-fast`: the original complete workflow without durable audit scripts or records.
+- `$software-engineering-loop-full`: the original durable state-and-evidence workflow.
 
-Slices contain only implementation and integration. Validation, debt review, Codex review, and wiring review run after every slice is integrated.
+## New workflow skills
 
-Native Codex review always targets a clean local checkpoint commit. Review repairs are committed separately; neither mode uses an uncommitted Codex review.
+- `$software-engineering-fast`: a lightweight workflow for contained small and medium tasks, with optional scouts, a reusable context packet, targeted worker validation, unified review, and no durable records.
+- `$software-engineering-full`: a high-risk or governed workflow with a formal task contract, proof obligations, triggered specialists, durable recovery, content-bound evidence, and an audit manifest.
 
-Both skills end with a supervisor-written explanation of what changed, why, how it works, validation, risks, files, and commits. They add code comments only for non-obvious reasoning or constraints.
+All four use Sol/high implementers, allow isolated parallel work only for independent slices, integrate sequentially, keep workers from recursively delegating, create local commits only when permitted, and never push or open pull requests. Native Codex review always targets a clean checkpoint commit.
 
 ## Install
 
@@ -20,23 +21,21 @@ codex plugin marketplace add BlessmanCEO/software-engineering-loop
 codex plugin add software-engineering-loop@software-engineering-loop
 ```
 
-Start a new Codex thread, then invoke the workflow you want:
+Start a new Codex thread and invoke one skill:
 
 ```text
 Use $software-engineering-loop-fast for this task.
-Use $software-engineering-loop-full for this task.
+Use $software-engineering-loop-full for this audited task.
+Use $software-engineering-fast for this task.
+Use $software-engineering-full for this high-risk task.
 ```
 
-Fast mode never uses the isolated runner or state helper. It requires the current session or a selectable native writer profile to be Sol/high. Full mode can use the isolated runner and state helper without copying agent profiles into `~/.codex`.
-
-## Check the installation
-
-For full mode, run `workflow_state.py` with no arguments. It reports whether the isolated runner is ready and whether optional native profiles are available. Fast mode has no workflow health command.
+The full skills include their own controller and isolated runner. Run their `workflow_state.py` without arguments for an installation health check.
 
 ## Requirements
 
-- Codex CLI authenticated on the machine
+- Authenticated Codex CLI
 - Python 3.11 or newer
 - Access to the configured Sol and Terra models
 
-The workflow creates local commits only when permitted. Publishing them is always a separate, explicit action.
+Publishing remains a separate explicit action.

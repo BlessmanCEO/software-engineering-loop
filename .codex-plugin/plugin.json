@@ -1,15 +1,15 @@
 {
   "name": "software-engineering-loop",
-  "version": "0.1.0+codex.20260717150817",
-  "description": "A bounded, multi-agent software engineering workflow for Codex.",
+  "version": "0.1.0+codex.20260717182743",
+  "description": "Original loop skills plus separate fast-delivery and fully audited workflows for Codex.",
   "author": {
     "name": "BlessmanCEO"
   },
   "skills": "./skills/",
   "interface": {
     "displayName": "Software Engineering Loop",
-    "shortDescription": "Choose a fast or fully audited coding loop",
-    "longDescription": "Provides the same complete engineering gates in two explicit skills: fast omits audit scripts and records, while full enforces durable state and evidence.",
+    "shortDescription": "Choose an original or revised engineering workflow",
+    "longDescription": "Keeps the original fast and full loop skills while adding separately named lightweight delivery and high-risk audited workflows.",
     "developerName": "BlessmanCEO",
     "category": "Productivity",
     "capabilities": [
@@ -20,7 +20,9 @@
     ],
     "defaultPrompt": [
       "Use $software-engineering-loop-fast for this coding task.",
-      "Use $software-engineering-loop-full for this audited coding task."
+      "Use $software-engineering-loop-full for this audited coding task.",
+      "Use $software-engineering-fast for this coding task.",
+      "Use $software-engineering-full for this high-risk coding task."
     ]
   }
 }

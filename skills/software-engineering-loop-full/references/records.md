@@ -25,7 +25,7 @@ Required fields:
 
 ## `plan.md`
 
-Record objective, in/out scope, current system context, risks, acceptance criteria, ordered slices, review gates, and the local-only commit policy.
+Record objective, in/out scope, current system context, risks, acceptance criteria, slice dependencies and likely files, review gates, and the local-only commit policy.
 
 ## `slices/<slice-id>.md`
 
@@ -35,9 +35,8 @@ Record:
 - objective and scope boundaries
 - acceptance criteria
 - likely and changed files
-- implementer thread ID
-- code-commenter thread ID, comments changed, and concise-rationale result
-- documenter thread ID, documentation changed, or the reason no documentation update was needed
+- implementer thread ID and isolated worktree when used
+- comments and maintained documentation changed, or why neither was needed
 - implementation notes
 - validation commands, attempt, exit codes, output SHA-256, diff hash, stable content hash, and HEAD SHA
 - tech-debt sweep result and fixes
@@ -69,3 +68,5 @@ All machine-consumed reviewers return:
 ```
 
 Ignore style preferences that do not affect correctness, maintainability, scope, or the explicit workflow policy.
+
+When one reviewer call covers multiple gates, return an object keyed by gate whose values each use the result shape above. Record each result through the state helper in its required order.

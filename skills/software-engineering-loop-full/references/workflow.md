@@ -1,6 +1,6 @@
 # Full workflow
 
-Use three scope-limited writers sequentially: `se-implementer` (Sol/high) for executable code and tests, `se-code-commenter` (Sol/high) for comments and docstrings, and `se-documenter` (Terra/medium) for maintained documentation. `se-reviewer` is Sol/high and read-only; every other Terra profile is read-only. The supervisor may directly create and update only `plan.md` and `slices/*.md`; mutate `state.json` only through `workflow_state.py`.
+Use one scope-limited Sol/high `se-implementer` for the complete slice, including executable code, tests, necessary rationale comments, and maintained documentation. `se-reviewer` is Sol/high and read-only; every Terra profile is read-only. The supervisor may directly create and update only `plan.md` and `slices/*.md`, plus mechanically apply a verified implementer patch from an isolated worktree; mutate `state.json` only through `workflow_state.py`.
 
 ## Worker execution
 
@@ -11,7 +11,7 @@ python3 <skill-dir>/scripts/run_profile.py \
   --profile se-implementer --repo <repo> --prompt <bounded-task>
 ```
 
-The isolated runner applies the profile's exact model, reasoning, sandbox, and bundled execution policy, and disables recursive delegation. Never silently substitute a model or sandbox. Keep `agents.max_depth = 1` for native workers. Never run more than one writable worker in a working tree.
+The isolated runner applies the profile's exact model, reasoning, sandbox, and bundled execution policy, and disables recursive delegation. Never silently substitute a model or sandbox. Keep `agents.max_depth = 1` for native workers. Never run more than one writable worker in a working tree. Parallel implementers require separate temporary Git worktrees based on the same integration HEAD.
 
 ## State flow
 
@@ -29,7 +29,7 @@ classify
 
 Only three parts are agent feedback loops. Classification, state changes, validation commands, commits, and stopping are supervisor actions.
 
-Parallelize independent read-only runner calls through the available execution tool, not shell background tricks. Read-only Terra workers cannot approve implementation output; required gates use `se-reviewer`.
+Parallelize independent worker calls through the available execution tool, not shell background tricks. Read-only Terra workers cannot approve implementation output; required gates use `se-reviewer`.
 
 ## 1. Planning loop
 
@@ -41,28 +41,27 @@ Run these read-only `se-scout` specialists in parallel, with the listed role in 
 - `test-scout`: find validation commands, existing coverage, edge cases, and likely regression tests.
 - `risk-scout`: inspect security, persistence, public contracts, deployment, and migration risk when relevant.
 
-Give their outputs to one `se-planner`. The planner produces the objective, scope, acceptance criteria, ordered slices, likely files, validation, risks, and commit metadata. For a bug, produce one bug-fix mini-plan and normally one slice.
+Give their outputs to one `se-planner`. The planner produces the objective, scope, acceptance criteria, slices, `depends_on` for each slice, likely files, validation, risks, and commit metadata. Do not add another agent call to plan parallelism. For a bug, produce one bug-fix mini-plan and normally one slice.
 
-The supervisor rejects a plan that has overlapping slices, missing acceptance criteria, speculative future architecture, or slices that cannot be validated independently. Repair at most twice.
+The supervisor rejects a plan that has missing acceptance criteria, speculative future architecture, invalid dependencies, overlapping files among concurrently ready slices, or slices that cannot be validated independently. Repair at most twice.
 
 ## 2. Slice loop
 
-Create one writable `se-implementer` thread for the current slice. It receives only the parent plan, current slice, relevant prior handoff, and specialist findings.
+Compute the ready set from completed dependencies. Start ready slices concurrently only when their likely writable files are disjoint. Each `se-implementer` receives only the parent plan, its slice, dependency handoffs, specialist findings, and an isolated temporary Git worktree based on the same integration HEAD. If isolation is unavailable, run slices sequentially.
+
+Parallel workers prepare changes only. After they finish, integrate one slice at a time into the primary worktree under the durable writer lock by applying the verified worker diff without committing it. Declare slices in topological integration order because the state helper enforces that order. Reject or rerun a prepared slice when its patch conflicts, its dependency changed, or it touches an undeclared file that overlaps another ready slice. Remove temporary worktrees after their changes are safely integrated; do not delete a worktree containing unintegrated changes.
 
 For each slice:
 
-1. Reuse the planning scout findings for the first slice. Run new read-only `se-scout` code/test passes only when findings are missing or a completed slice changed the relevant boundary.
-2. Acquire the writer lock for the implementer thread, let it make the smallest complete executable-code and test change, then release the lock.
-3. Acquire the writer lock for `se-code-commenter`. Let it edit only comments and docstrings in changed task files, then release the lock. Keep comments concise; move paragraph-sized rationale to documentation or simplify the code.
-4. Acquire the writer lock for Terra/medium `se-documenter`. Let it edit only maintained documentation required by changed behavior, interfaces, configuration, architecture, operations, or usage, then release the lock. It may report that no documentation update is needed.
-5. Run each validation command through `record-validation`, using the same attempt number for commands in one validation round.
-6. Run `se-reviewer` with the `tech-debt-reviewer` role read-only.
-7. If changes are requested, return findings to the same implementer thread, rerun the commenter and documenter when affected, validate again, and rerun the tech gate.
-8. Run `se-reviewer` with the `process-debt-reviewer` role only after the tech gate passes.
-9. If changes are requested, send executable-code or test repairs to `se-implementer`, comment repairs to `se-code-commenter`, and documentation repairs to `se-documenter`; the supervisor may repair `plan.md` and `slices/*.md` directly, but must mutate `state.json` through the state helper. Then rerun affected gates.
-10. Record the handoff and close the slice.
+1. Reuse planning scout findings. Run new read-only scouts only when findings are missing or an integrated dependency changed the relevant boundary.
+2. Let each ready implementer make the smallest complete slice change in its isolated worktree. It owns executable code, tests, concise non-obvious rationale comments, and required maintained documentation.
+3. Integrate one prepared slice into the primary worktree under `acquire-writer`, inspect its actual changed files against the plan, then release the lock.
+4. Run each validation command through `record-validation`, using the same attempt number for commands in one validation round. The evidence recorder remains sequential unless it explicitly supports safe parallel recording.
+5. Run one `se-reviewer` call that returns separate tech-debt and process-debt results. Record the tech gate first, then the process gate from the same unchanged snapshot. A process pass is valid only when the tech result passes.
+6. If either result requests changes, return all valid findings to the same slice implementer, integrate the repair under the writer lock, validate again, and rerun the combined review. The supervisor may repair `plan.md` and `slices/*.md` directly, but must mutate `state.json` through the state helper.
+7. Record the handoff, close the slice, and release newly ready dependents.
 
-Never run slice implementers concurrently in one working tree. The supervisor must hold `.writer.lock` for the active implementer; a second acquisition is a machine failure.
+Never run slice implementers concurrently in one working tree. `.writer.lock` protects primary-worktree integration and repair; a second primary integration acquisition is a machine failure.
 
 ### Tech-debt gate
 
@@ -78,13 +77,13 @@ After all slices pass:
 
 1. Run a completion check across acceptance criteria, tests, hidden TODOs, records, and system wiring.
 2. Create a local checkpoint commit.
-3. Run `codex review --commit <checkpoint-sha>` through `record-review-command`, then record the interpreted result with `set-review` against that SHA.
-4. Acquire `acquire-finalizer`, route valid findings to the matching scope-limited writer, rerun the commenter and documenter when affected, then release the lock before re-reviewing.
-5. Run `se-reviewer` for these read-only gates in order, repairing and rechecking each before continuing:
+3. Concurrently run `codex review --commit <checkpoint-sha>` and `se-reviewer` for the following read-only gates against that exact checkpoint. Record their results sequentially through the state helper after all calls finish:
    - lean review
    - tech-debt review
    - process-debt review
    - wider-system wiring review
+4. Aggregate valid findings into one repair set. Acquire `acquire-finalizer`, route it to the relevant `se-implementer`, then release the lock before re-reviewing.
+5. After repairs, rerun the four content-bound reviewer gates concurrently so every passing result matches the repaired content. The checkpoint-bound Codex review remains attached to the checkpoint.
 6. Run the relevant commands through `record-final-validation`, binding passing machine evidence to the reviewed content.
 7. Create a final local commit only when review or wiring fixes changed files. Otherwise record the checkpoint SHA as the final SHA.
 
@@ -99,9 +98,9 @@ The wiring gate checks exports, imports, routes, handlers, UI entry points, jobs
 ## Non-negotiable policy
 
 - Never push, merge, or open a pull request.
-- Never let a later slice start while the current slice has a failed gate.
+- Never release a slice whose dependency has a failed gate.
 - Never let more than one writer mutate the same working tree.
-- Never let a writer exceed its scope: `se-implementer` edits executable code and tests, `se-code-commenter` edits comments and docstrings, and `se-documenter` edits maintained documentation.
+- Never let an implementer exceed its assigned slice or working tree.
 - Never claim a command, test, review, or commit happened without captured evidence.
 - Never continue when the bundled execution policy fails its negative probes; load it only in isolated worker homes.
 - Never create package/domain/application/infrastructure/UI folders merely to match a template; use the repository's current structure and split only when responsibilities require it.

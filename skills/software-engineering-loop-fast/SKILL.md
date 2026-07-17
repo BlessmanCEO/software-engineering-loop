@@ -11,22 +11,22 @@ Keep network access disabled unless the task explicitly requires it. Never push,
 
 ## Agents
 
-- Use read-only `se-scout` agents for repository, test, and risk discovery and one read-only `se-planner` for the sliced plan.
-- Use one writable `se-implementer`, configured as `gpt-5.6-sol` with high reasoning, for executable code and tests. Reuse it for repairs.
-- After each implementation or repair, run writable Sol/high `se-code-commenter` to edit only comments and docstrings, then writable Terra/medium `se-documenter` to edit only maintained documentation. Run these writers sequentially and never concurrently.
+- Use read-only `se-scout` agents for repository, test, and risk discovery and one read-only `se-planner` for the sliced dependency plan. Do not add a separate parallelism planner.
+- Use writable `se-implementer` agents, configured as `gpt-5.6-sol` with high reasoning, for complete slices: executable code, tests, necessary rationale comments, and maintained documentation. Reuse the same slice agent for repairs.
+- Run ready slices with disjoint likely files concurrently only in isolated Git worktrees. Integrate them into the primary worktree one at a time. Run overlapping or dependent slices sequentially.
 - Use read-only Sol/high `se-reviewer` agents for every approval gate. Terra agents may assist only with bounded read-only work and cannot approve gates.
-- Prefer installed native profiles. For `se-code-commenter` and `se-documenter`, invoke `codex exec` directly with the exact model, reasoning, sandbox, and instructions in `../software-engineering-loop-full/assets/agents/` when no native profile is installed. Never invoke `run_profile.py`, a state script, or any other bundled loop script in fast mode, and never mislabel an unconfigured model.
+- Prefer installed native profiles. Never invoke `run_profile.py`, a state script, or any other bundled loop script in fast mode, and never mislabel an unconfigured model.
 - Keep subagent depth at one. Workers never delegate.
 
 ## Workflow
 
 1. Read applicable `AGENTS.md`; inspect the repository, relevant code, conventions, worktree, tests, and build commands.
-2. Classify the task. Run repository, test, and relevant risk scouts in parallel, then have the planner produce the smallest ordered slices with scope, acceptance criteria, likely files, risks, and validation. Keep this plan in the active thread only.
-3. For each slice, give the implementer only the current slice and prior handoff. Make the smallest complete change and keep files below the 500-line design warning unless a justified exception exists. Then run the code commenter and documenter sequentially before validation.
-4. Run relevant project validation directly. Then run read-only tech-debt and process-debt reviews in order. Repair with the same implementer, rerun the commenter and documenter when affected, and recheck the gate. Allow at most two attempts per gate; do not start the next slice until both pass.
+2. Classify the task. Run repository, test, and relevant risk scouts in parallel, then have the planner produce the smallest slices with scope, acceptance criteria, `depends_on`, likely files, risks, and validation. Keep this plan in the active thread only.
+3. Start every dependency-ready slice whose likely files do not overlap. Give each implementer only its slice, dependency handoffs, and an isolated Git worktree based on the same commit. Make the smallest complete change and keep files below the 500-line design warning unless a justified exception exists. Integrate completed worktrees sequentially; discard or rerun stale work when integration reveals a conflict or changed dependency.
+4. Run independent project validation commands in parallel when their tools do not contend for the same generated state. Then use one read-only reviewer call to return both tech-debt and process-debt results. Repair with the same slice implementer and recheck the affected gate. Allow at most two attempts per gate; do not release a dependent slice until both pass.
 5. Complete all acceptance criteria and verify wider-system wiring. Create a local checkpoint commit only when unrelated worktree changes can be excluded safely.
-6. Run `codex review --commit <checkpoint-sha>` directly. Fix valid findings with the same implementer and rerun relevant validation.
-7. Run read-only lean, tech-debt, process-debt, and wider-system wiring reviews in order. Repair and recheck each gate before continuing, with at most two attempts per gate.
+6. Run `codex review --commit <checkpoint-sha>` and the read-only lean, tech-debt, process-debt, and wider-system wiring reviews concurrently against that exact checkpoint. Aggregate valid findings into one repair pass with the matching slice implementer and rerun relevant validation.
+7. Recheck only affected gates after repairs, with at most two attempts per gate.
 8. Run the relevant project validation directly against the final content. Create a final local commit only when review or wiring fixes changed files; otherwise keep the checkpoint as the final commit.
 9. Produce the change explanation below.
 
@@ -36,4 +36,4 @@ Stop as blocked when a required model, agent, command, validation, or review gat
 
 Have the supervisor finish with a plain-language summary of what changed, why it changed, how it works, validation performed, risks or limitations, deferred work, changed files, local commits, and that nothing was pushed. Do not spawn another agent for this summary.
 
-The code commenter must keep rationale concise. A paragraph-sized comment is normally a signal to simplify the code or move the explanation into documentation. Comments must never expose private chain-of-thought, narrate edit history, or restate obvious code.
+The implementer must keep rationale comments concise. A paragraph-sized comment is normally a signal to simplify the code or move the explanation into documentation. Comments must never expose private chain-of-thought, narrate edit history, or restate obvious code.

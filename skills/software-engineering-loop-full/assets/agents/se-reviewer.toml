@@ -4,6 +4,7 @@ model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
-Review only the assigned gate and snapshot. Do not edit files, commit, delegate, or add stylistic preferences.
-Return JSON with status pass, changes_requested, or blocked; a short summary; and concrete findings containing severity, location, problem, and smallest required change.
+Review only the assigned gate or gates and snapshot. Do not edit files, commit, delegate, or add stylistic preferences.
+For one gate, return JSON with status pass, changes_requested, or blocked; a short summary; and concrete findings containing severity, location, problem, and smallest required change.
+When assigned multiple gates, return one such result keyed by gate so the supervisor can record each gate separately.
 """

@@ -9,7 +9,7 @@ Stay in full mode for the entire task. Do not switch to the fast skill. Use Code
 
 Read [workflow.md](references/workflow.md) completely before starting. Read [records.md](references/records.md) when creating the run plan or slice records.
 
-Use three scope-limited writers sequentially: `se-implementer` (Sol/high) edits executable code and tests, `se-code-commenter` (Sol/high) edits only comments and docstrings, and `se-documenter` (Terra/medium) edits only maintained documentation. Never run writers concurrently. `se-reviewer` is Sol/high and read-only; all other Terra workers are read-only. The supervisor may directly create and update only `plan.md` and `slices/*.md`; mutate `state.json` only through `scripts/workflow_state.py`. Workers never recursively delegate.
+Use one scope-limited Sol/high `se-implementer` for the complete slice, including executable code, tests, necessary rationale comments, and maintained documentation. `se-reviewer` is Sol/high and read-only; all Terra workers are read-only. The supervisor may directly create and update only `plan.md` and `slices/*.md`, plus mechanically apply a verified implementer patch from an isolated worktree; mutate `state.json` only through `scripts/workflow_state.py`. Workers never recursively delegate.
 
 Use native typed subagents only when the spawn surface exposes an agent-profile selector and the named profiles are installed. Otherwise invoke `scripts/run_profile.py`; it uses the bundled profiles directly, applies their model, reasoning, sandbox, and instructions exactly, and disables multi-agent tools in the worker. This runner path needs no global profile installation. Never label a generic spawned child as a configured profile.
 
@@ -34,11 +34,12 @@ Follow the complete planning, slice, review, validation, checkpoint, finalizatio
 
 - Treat phases as state transitions. Loop only when a reviewer returns `changes_requested`.
 - Use the state helper's attempt number on every gate. Attempt three is rejected; return `blocked` after attempt two fails.
-- Run independent `se-scout` specialists in parallel. Acquire and release the writer lock separately for `se-implementer`, `se-code-commenter`, and `se-documenter`; run them in that order and never concurrently.
-- Use Sol/high `se-implementer` for executable code and tests, Sol/high `se-code-commenter` only for comments and docstrings, and Terra/medium `se-documenter` only for maintained documentation. Keep every other Terra worker read-only.
-- Start the next slice only after validation, tech-debt sweep, and process-debt sweep pass.
+- Run independent `se-scout` specialists in parallel. Have the existing planner identify slice dependencies and likely files; do not add a separate parallelism-planning call.
+- Run ready slices with disjoint likely files concurrently only in isolated Git worktrees. Integrate them into the primary worktree one at a time under the writer lock, then validate and review each integrated slice. Run overlapping or dependent slices sequentially.
+- Use Sol/high `se-implementer` for the complete slice. Keep every Terra worker read-only.
+- Release a dependent slice only after its dependencies pass validation, tech-debt, and process-debt review.
 - Use structured reviewer output: `pass`, `changes_requested`, or `blocked`, plus concrete findings.
-- Run validation through `record-validation`; a passing claim without exit-code, output-digest, diff-hash, and HEAD evidence fails the final check.
+- Run validation through `record-validation`; a passing claim without exit-code, output-digest, diff-hash, and HEAD evidence fails the final check. Parallelize validation only when the recorder can preserve that evidence safely.
 - Let the supervisor create local commits only after the required gates pass.
 
 ### Codex review
@@ -67,4 +68,4 @@ python3 <skill-dir>/scripts/workflow_state.py check --run-dir <run-dir> --final
 
 Have the supervisor finish with a plain-language summary of what changed, why it changed, how it works, validation performed, risks or limitations, deferred work, changed files, local commits, and that nothing was pushed. Do not spawn another agent for this summary.
 
-The code commenter must keep rationale concise. A paragraph-sized comment is normally a signal to simplify the code or move the explanation into documentation. Comments must never expose private chain-of-thought, narrate edit history, or restate obvious code.
+The implementer must keep rationale comments concise. A paragraph-sized comment is normally a signal to simplify the code or move the explanation into documentation. Comments must never expose private chain-of-thought, narrate edit history, or restate obvious code.

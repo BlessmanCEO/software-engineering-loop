@@ -35,11 +35,12 @@ Follow the complete planning, slice, review, validation, checkpoint, finalizatio
 - Treat phases as state transitions. Loop only when a reviewer returns `changes_requested`.
 - Use the state helper's attempt number on every gate. Attempt three is rejected; return `blocked` after attempt two fails.
 - Run independent `se-scout` specialists in parallel. Have the existing planner identify slice dependencies and likely files; do not add a separate parallelism-planning call.
-- Run ready slices with disjoint likely files concurrently only in isolated Git worktrees. Integrate them into the primary worktree one at a time under the writer lock, then validate and review each integrated slice. Run overlapping or dependent slices sequentially.
+- Run ready slices with disjoint likely files concurrently only in isolated Git worktrees. Integrate them into the primary worktree one at a time under the writer lock, then close the integrated slice. Run overlapping or dependent slices sequentially.
 - Use Sol/high `se-implementer` for the complete slice. Keep every Terra worker read-only.
-- Release a dependent slice only after its dependencies pass validation, tech-debt, and process-debt review.
+- Release a dependent slice after its dependencies are integrated.
 - Use structured reviewer output: `pass`, `changes_requested`, or `blocked`, plus concrete findings.
-- Run validation through `record-validation`; a passing claim without exit-code, output-digest, diff-hash, and HEAD evidence fails the final check. Parallelize validation only when the recorder can preserve that evidence safely.
+- Run validation once against the final content through `record-final-validation`; a passing claim without exit-code, output-digest, diff-hash, and HEAD evidence fails the final check.
+- Run the full execution-policy negative probes at health check and run initialization. State-only transitions do not rerun them; every recorded external command is still checked against the policy before execution.
 - Let the supervisor create local commits only after the required gates pass.
 
 ### Codex review
@@ -52,11 +53,11 @@ python3 <skill-dir>/scripts/workflow_state.py record-review-command \
   -- codex review --commit <checkpoint-sha>
 ```
 
-Do not substitute a normal reviewer prompt while claiming the native Codex review ran. If the command is unavailable or fails, record the gate as `degraded` or `blocked`.
+Do not substitute `codex review --uncommitted` or a normal reviewer prompt while claiming the native Codex review ran. The state helper rejects any Codex review command or SHA that does not exactly match the recorded clean checkpoint commit. If the command is unavailable or fails, record the gate as `degraded` or `blocked`.
 
 ### Finish
 
-After wiring passes, run the relevant commands through `record-final-validation` so final test evidence is bound to the exact reviewed content. Stop only after final state and commit SHAs are recorded. When reviews make no changes, record the checkpoint SHA as the final SHA; do not create an empty commit. Report tests, review results, deferred work, local commits, and the explicit fact that nothing was pushed.
+After wiring passes, run the relevant commands through `record-final-validation` so final test evidence is bound to the exact reviewed content. Commit review repairs as a second local commit, then record that SHA as final. When reviews make no changes, record the checkpoint SHA as the final SHA; do not create an empty commit. Stop only after final state and commit SHAs are recorded. Report tests, review results, deferred work, local commits, and the explicit fact that nothing was pushed.
 
 Run the final machine check before reporting success:
 

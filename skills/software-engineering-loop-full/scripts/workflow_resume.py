@@ -35,10 +35,7 @@ def resume_status(args) -> None:
             if record["status"] == "planned":
                 next_action = f"acquire-writer {name}"
             else:
-                next_action = next(
-                    (gate for gate in ("validation", "techDebt", "processDebt") if record[gate] != "pass"),
-                    f"complete {name}",
-                )
+                next_action = f"complete {name}"
         elif state["reviews"]["completion"]["status"] != "pass":
             next_action = "completion review"
         elif not state.get("checkpointSha"):

@@ -38,15 +38,12 @@ Record:
 - implementer thread ID and isolated worktree when used
 - comments and maintained documentation changed, or why neither was needed
 - implementation notes
-- validation commands, attempt, exit codes, output SHA-256, diff hash, stable content hash, and HEAD SHA
-- tech-debt sweep result and fixes
-- process-debt sweep result and fixes
 - handoff notes
 - terminal status
 
 Update records after each state transition, not only at the end.
 
-The state helper rejects illegal phase order, a third gate attempt, a second slice/finalization writer, a passing validation without matching machine-run content evidence, and final success while either lock representation remains held. Gate histories preserve prior findings. Each final review records its evidence, reviewed SHA, diff hash, and stable content hash. Native Codex review additionally requires the exact command and its exit evidence against the checkpoint SHA. Final success requires a clean non-record worktree at the recorded final HEAD, final reviews bound to that content, and passing final-validation command evidence for the same content.
+The state helper rejects illegal phase order, a third final gate attempt, a second slice/finalization writer, a passing validation without matching machine-run content evidence, and final success while either lock representation remains held. Final gate histories preserve prior findings. Each final review records its evidence, reviewed SHA, diff hash, and stable content hash. Native Codex review additionally requires the exact command and its exit evidence against the checkpoint SHA. A changed final commit must descend from that checkpoint. Final success requires a clean non-record worktree at the recorded final HEAD, final reviews bound to that content, and passing final-validation command evidence for the same content.
 
 ## Reviewer result
 

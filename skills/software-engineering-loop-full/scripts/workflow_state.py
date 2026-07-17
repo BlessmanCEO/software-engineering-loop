@@ -9,7 +9,7 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
-from workflow_checks import current_validation, previous_slices_complete, problems, require_no_writer, self_test
+from workflow_checks import previous_slices_complete, problems, require_no_writer, self_test
 from workflow_cli import build_parser
 from workflow_evidence import EMPTY_DIFF_HASH, content_hash, evidence_snapshot, git, non_record_dirty, run_with_evidence
 from workflow_health import health
@@ -18,7 +18,6 @@ from workflow_resume import resume_status
 from workflow_store import acquire_finalizer, acquire_writer, read_state, release_writer, write_state
 
 SLICE_STATUSES = {"planned", "in_progress", "complete", "blocked"}
-SLICE_GATES = ("validation", "techDebt", "processDebt")
 FINAL_GATES = ("completion", "codex", "lean", "tech_debt", "process_debt", "wiring")
 MAX_ATTEMPTS = 2
 REVIEW_ORDER = FINAL_GATES
@@ -79,14 +78,6 @@ def init(args) -> None:
         "slices": {
             slice_id: {
                 "status": "planned",
-                "validation": "pending",
-                "techDebt": "pending",
-                "processDebt": "pending",
-                "attempts": {gate: 0 for gate in SLICE_GATES},
-                "validationRuns": [],
-                "evidence": {"techDebt": "", "processDebt": ""},
-                "gateHistory": {"techDebt": [], "processDebt": []},
-                "gateSnapshots": {"techDebt": None, "processDebt": None},
                 "closedSnapshot": None,
             }
             for slice_id in args.slices
@@ -133,112 +124,13 @@ def set_slice_status(args) -> None:
         raise SystemExit("acquire-writer is the only transition into in_progress")
     if status == "complete":
         require_no_writer(run_dir, state)
-        if record["status"] != "in_progress" or any(record[gate] != "pass" for gate in SLICE_GATES):
-            raise SystemExit("slice must be in progress with all gates passing")
-        snapshot = evidence_snapshot(Path(state["repo"]))
-        runs = current_validation(record)
-        if not runs or any(item.get("contentHash") != snapshot["contentHash"] for item in runs):
-            raise SystemExit("slice content changed after validation")
-        if any(
-            (record.get("gateSnapshots", {}).get(gate) or {}).get("contentHash")
-            != snapshot["contentHash"]
-            for gate in ("techDebt", "processDebt")
-        ):
-            raise SystemExit("slice content changed after debt review")
-        record["closedSnapshot"] = snapshot
+        if record["status"] != "in_progress":
+            raise SystemExit("slice must be in progress")
+        record["closedSnapshot"] = evidence_snapshot(Path(state["repo"]))
     record["status"] = status
     state["currentSlice"] = args.slice
     state["status"] = "blocked" if status == "blocked" else "running"
     write_state(run_dir, state)
-
-
-def set_slice_gate(args) -> None:
-    require_attempt(args.attempt)
-    run_dir = Path(args.run_dir)
-    state = read_state(run_dir)
-    if args.slice not in state["slices"]:
-        raise SystemExit(f"unknown slice: {args.slice}")
-    require_no_writer(run_dir, state)
-    record = state["slices"][args.slice]
-    if record["status"] != "in_progress":
-        raise SystemExit("slice gate requires an in-progress slice")
-    if args.gate == "techDebt" and record["validation"] != "pass":
-        raise SystemExit("tech debt review requires passing validation")
-    if args.gate == "processDebt" and record["techDebt"] != "pass":
-        raise SystemExit("process debt review requires passing tech debt review")
-    previous = record["attempts"].get(args.gate, 0)
-    previous_status = record[args.gate]
-    snapshot = evidence_snapshot(Path(state["repo"]))
-    prior_snapshot = record.get("gateSnapshots", {}).get(args.gate) or {}
-    if previous_status == "pending":
-        expected = previous + 1
-    elif previous_status == "changes_requested":
-        expected = previous + 1
-    elif previous_status == "pass" and prior_snapshot.get("contentHash") != snapshot["contentHash"]:
-        expected = previous + 1
-    else:
-        raise SystemExit(f"cannot rerun {args.gate} from {previous_status}")
-    if args.attempt != expected:
-        raise SystemExit(f"{args.gate} attempt must be {expected}")
-    status = require_choice(args.status, {"pass", "changes_requested", "blocked"}, "gate status")
-    if status == "pass" and not args.evidence:
-        raise SystemExit("passing gate requires evidence")
-    terminal_failure = args.attempt == MAX_ATTEMPTS and status in {"changes_requested", "blocked"}
-    record[args.gate] = "blocked" if terminal_failure else status
-    record["attempts"][args.gate] = args.attempt
-    record["evidence"][args.gate] = args.evidence
-    record.setdefault("gateHistory", {}).setdefault(args.gate, []).append(
-        {"attempt": args.attempt, "status": status, "evidence": args.evidence, **snapshot}
-    )
-    if status == "pass":
-        record.setdefault("gateSnapshots", {})[args.gate] = snapshot
-    if terminal_failure or status == "blocked":
-        record["status"] = "blocked"
-        state["status"] = "blocked"
-    write_state(run_dir, state)
-
-
-def record_validation(args) -> None:
-    require_attempt(args.attempt)
-    run_dir = Path(args.run_dir)
-    state = read_state(run_dir)
-    if args.slice not in state["slices"]:
-        raise SystemExit(f"unknown slice: {args.slice}")
-    require_no_writer(run_dir, state)
-    record = state["slices"][args.slice]
-    if record["status"] != "in_progress":
-        raise SystemExit("validation requires an in-progress slice")
-    previous = record["attempts"].get("validation", 0)
-    existing = current_validation(record)
-    current_hash = content_hash(Path(state["repo"]))
-    changed = bool(existing) and any(item.get("contentHash") != current_hash for item in existing)
-    if record["validation"] == "pending":
-        expected = 1
-    elif changed:
-        expected = previous + 1
-    else:
-        expected = previous
-    if args.attempt != expected:
-        raise SystemExit(f"validation attempt must be {expected}")
-    command = command_args(args.command)
-    check_command_policy(command)
-    run = run_with_evidence(Path(state["repo"]), command, args.attempt)
-    record.setdefault("validationRuns", []).append(run)
-    record["attempts"]["validation"] = args.attempt
-    current = [item for item in record["validationRuns"] if item["attempt"] == args.attempt]
-    record["validation"] = "pass" if all(item["exitCode"] == 0 for item in current) else "changes_requested"
-    if args.attempt > previous:
-        for gate in ("techDebt", "processDebt"):
-            if record[gate] == "pass":
-                record[gate] = "pending"
-    if args.attempt == MAX_ATTEMPTS and record["validation"] == "changes_requested":
-        record["validation"] = "blocked"
-        record["status"] = "blocked"
-        state["status"] = "blocked"
-    write_state(run_dir, state)
-    print(json.dumps(run, indent=2))
-    if run["exitCode"]:
-        raise SystemExit(run["exitCode"])
 
 
 def record_final_validation(args) -> None:
@@ -369,6 +261,14 @@ def set_commit(args) -> None:
         if completion["status"] != "pass" or completion.get("contentHash") != snapshot["contentHash"]:
             raise SystemExit("checkpoint content must pass completion review")
     else:
+        checkpoint = state.get("checkpointSha")
+        if not checkpoint:
+            raise SystemExit("final commit requires a checkpoint commit")
+        if sha != checkpoint:
+            try:
+                git(repo, "merge-base", "--is-ancestor", checkpoint, sha)
+            except subprocess.CalledProcessError:
+                raise SystemExit("final repair commit must descend from the reviewed checkpoint") from None
         for name in ("lean", "tech_debt", "process_debt", "wiring"):
             review = state["reviews"][name]
             if review["status"] != "pass" or review.get("contentHash") != snapshot["contentHash"]:
@@ -402,8 +302,8 @@ def check(args) -> None:
 
 if __name__ == "__main__":
     handlers = {
-        "init": init, "set-slice-status": set_slice_status, "set-slice-gate": set_slice_gate,
-        "record-validation": record_validation, "record-final-validation": record_final_validation,
+        "init": init, "set-slice-status": set_slice_status,
+        "record-final-validation": record_final_validation,
         "set-review": set_review,
         "record-review-command": record_review_command, "acquire-writer": acquire_writer,
         "acquire-finalizer": acquire_finalizer, "release-writer": release_writer,
@@ -413,6 +313,6 @@ if __name__ == "__main__":
     arguments = build_parser(handlers, FINAL_GATES).parse_args()
     if not hasattr(arguments, "function"):
         arguments.command_name, arguments.function = "health", health
-    if arguments.command_name not in {"health", "self-test"}:
+    if arguments.command_name == "init":
         verify_policy()
     arguments.function(arguments)

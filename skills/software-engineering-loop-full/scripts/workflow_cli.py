@@ -24,20 +24,6 @@ def build_parser(handlers: dict[str, Callable], final_gates: tuple[str, ...]) ->
     command.add_argument("--slice", required=True)
     command.add_argument("--status", required=True)
 
-    command = commands.add_parser("set-slice-gate")
-    command.add_argument("--run-dir", required=True)
-    command.add_argument("--slice", required=True)
-    command.add_argument("--gate", required=True, choices=("techDebt", "processDebt"))
-    command.add_argument("--status", required=True)
-    command.add_argument("--attempt", required=True, type=int)
-    command.add_argument("--evidence", default="")
-
-    command = commands.add_parser("record-validation")
-    command.add_argument("--run-dir", required=True)
-    command.add_argument("--slice", required=True)
-    command.add_argument("--attempt", required=True, type=int)
-    command.add_argument("command", nargs=argparse.REMAINDER)
-
     command = commands.add_parser("record-final-validation")
     command.add_argument("--run-dir", required=True)
     command.add_argument("--attempt", required=True, type=int)

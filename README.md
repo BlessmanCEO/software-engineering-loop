@@ -7,6 +7,10 @@ Two explicit Codex skills for implementing, validating, reviewing, and locally c
 
 Both modes use a Sol/high `se-implementer` for the complete slice, including necessary rationale comments and maintained documentation. Independent read-only work runs in parallel. Independent writable slices may run in parallel only in isolated Git worktrees and are integrated sequentially. Workers never recursively delegate, and neither skill pushes, merges, or opens pull requests.
 
+Slices contain only implementation and integration. Validation, debt review, Codex review, and wiring review run after every slice is integrated.
+
+Native Codex review always targets a clean local checkpoint commit. Review repairs are committed separately; neither mode uses an uncommitted Codex review.
+
 Both skills end with a supervisor-written explanation of what changed, why, how it works, validation, risks, files, and commits. They add code comments only for non-obvious reasoning or constraints.
 
 ## Install

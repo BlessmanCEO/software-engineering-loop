@@ -8,7 +8,6 @@ from pathlib import Path
 
 from workflow_evidence import EMPTY_DIFF_HASH
 
-SLICE_GATES = ("validation", "techDebt", "processDebt")
 FINAL_GATES = ("completion", "codex", "lean", "tech_debt", "process_debt", "wiring")
 MAX_ATTEMPTS = 2
 
@@ -33,11 +32,6 @@ def previous_slices_complete(state: dict, slice_id: str) -> bool:
     return all(state["slices"][item]["status"] == "complete" for item in ids[: ids.index(slice_id)])
 
 
-def current_validation(record: dict) -> list[dict]:
-    attempt = record.get("attempts", {}).get("validation", 0)
-    return [item for item in record.get("validationRuns", []) if item.get("attempt") == attempt]
-
-
 def evidence_complete(record: dict) -> bool:
     return all(
         record.get(key) not in (None, "")
@@ -52,18 +46,6 @@ def problems(state: dict, final: bool, run_dir: Path | None = None, snapshot: di
         issues.append(lock_issue)
     for slice_id, record in state["slices"].items():
         if record["status"] == "complete":
-            for gate in SLICE_GATES:
-                if record[gate] != "pass":
-                    issues.append(f"{slice_id}: {gate} is {record[gate]}")
-                if not 1 <= record.get("attempts", {}).get(gate, 0) <= MAX_ATTEMPTS:
-                    issues.append(f"{slice_id}: {gate} has invalid attempt count")
-            attempt = record.get("attempts", {}).get("validation", 0)
-            current = [item for item in record.get("validationRuns", []) if item.get("attempt") == attempt]
-            if not current or any(item.get("exitCode") != 0 or not evidence_complete(item) for item in current):
-                issues.append(f"{slice_id}: validation lacks passing machine evidence")
-            for gate in ("techDebt", "processDebt"):
-                if not record.get("evidence", {}).get(gate):
-                    issues.append(f"{slice_id}: {gate} lacks evidence")
             if not record.get("closedSnapshot"):
                 issues.append(f"{slice_id}: closing snapshot is missing")
         elif final:
@@ -122,7 +104,7 @@ def self_test(_: object) -> None:
     evidence = {"attempt": 1, "command": "true", "exitCode": 0, "outputSha256": "x", "diffHash": "y", "contentHash": "c", "headSha": "z"}
     state = {
         "writerLock": None,
-        "slices": {"S1": {"status": "complete", "validation": "pass", "techDebt": "pass", "processDebt": "pass", "attempts": {gate: 1 for gate in SLICE_GATES}, "validationRuns": [evidence], "evidence": {"techDebt": "ok", "processDebt": "ok"}, "closedSnapshot": {"contentHash": "c"}}},
+        "slices": {"S1": {"status": "complete", "closedSnapshot": {"contentHash": "c"}}},
         "reviews": {name: {"status": "pass", "attempts": 1, "evidence": "ok", "reviewedSha": "a", "diffHash": "b", "contentHash": "c", "commandRuns": []} for name in FINAL_GATES},
         "checkpointSha": "a", "finalSha": "b", "pushed": False,
         "finalValidation": "pass", "finalValidationAttempts": 1,
@@ -130,6 +112,6 @@ def self_test(_: object) -> None:
     }
     state["reviews"]["codex"]["commandRuns"] = [{**evidence, "command": "codex review --commit a", "reviewedSha": "a"}]
     assert problems(state, True) == []
-    state["slices"]["S1"]["validationRuns"][0]["exitCode"] = 1
-    assert problems(state, True) == ["S1: validation lacks passing machine evidence"]
+    state["slices"]["S1"]["closedSnapshot"] = None
+    assert problems(state, True) == ["S1: closing snapshot is missing"]
     print("self-test passed")

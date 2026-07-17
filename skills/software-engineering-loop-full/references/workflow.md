@@ -27,7 +27,7 @@ classify
   -> stop
 ```
 
-Only three parts are agent feedback loops. Classification, state changes, validation commands, commits, and stopping are supervisor actions.
+Planning and finalization are the agent feedback loops. Classification, state changes, validation commands, commits, and stopping are supervisor actions.
 
 Parallelize independent worker calls through the available execution tool, not shell background tricks. Read-only Terra workers cannot approve implementation output; required gates use `se-reviewer`.
 
@@ -56,10 +56,7 @@ For each slice:
 1. Reuse planning scout findings. Run new read-only scouts only when findings are missing or an integrated dependency changed the relevant boundary.
 2. Let each ready implementer make the smallest complete slice change in its isolated worktree. It owns executable code, tests, concise non-obvious rationale comments, and required maintained documentation.
 3. Integrate one prepared slice into the primary worktree under `acquire-writer`, inspect its actual changed files against the plan, then release the lock.
-4. Run each validation command through `record-validation`, using the same attempt number for commands in one validation round. The evidence recorder remains sequential unless it explicitly supports safe parallel recording.
-5. Run one `se-reviewer` call that returns separate tech-debt and process-debt results. Record the tech gate first, then the process gate from the same unchanged snapshot. A process pass is valid only when the tech result passes.
-6. If either result requests changes, return all valid findings to the same slice implementer, integrate the repair under the writer lock, validate again, and rerun the combined review. The supervisor may repair `plan.md` and `slices/*.md` directly, but must mutate `state.json` through the state helper.
-7. Record the handoff, close the slice, and release newly ready dependents.
+4. Record the handoff, close the slice, and release newly ready dependents. Validation and review wait until every slice is integrated.
 
 Never run slice implementers concurrently in one working tree. `.writer.lock` protects primary-worktree integration and repair; a second primary integration acquisition is a machine failure.
 
@@ -73,10 +70,10 @@ Check plan alignment, scope drift, acceptance criteria, recorded validation, ass
 
 ## 3. Finalization loop
 
-After all slices pass:
+After all slices are integrated:
 
 1. Run a completion check across acceptance criteria, tests, hidden TODOs, records, and system wiring.
-2. Create a local checkpoint commit.
+2. Create a clean local checkpoint commit. Never run native Codex review against uncommitted changes.
 3. Concurrently run `codex review --commit <checkpoint-sha>` and `se-reviewer` for the following read-only gates against that exact checkpoint. Record their results sequentially through the state helper after all calls finish:
    - lean review
    - tech-debt review
@@ -85,7 +82,7 @@ After all slices pass:
 4. Aggregate valid findings into one repair set. Acquire `acquire-finalizer`, route it to the relevant `se-implementer`, then release the lock before re-reviewing.
 5. After repairs, rerun the four content-bound reviewer gates concurrently so every passing result matches the repaired content. The checkpoint-bound Codex review remains attached to the checkpoint.
 6. Run the relevant commands through `record-final-validation`, binding passing machine evidence to the reviewed content.
-7. Create a final local commit only when review or wiring fixes changed files. Otherwise record the checkpoint SHA as the final SHA.
+7. When review or wiring fixes changed files, create a second local commit and record it as final. Otherwise record the checkpoint SHA as the final SHA.
 
 The wiring gate checks exports, imports, routes, handlers, UI entry points, jobs, configuration, migrations, build/test scripts, docs, and orphaned components as applicable.
 
@@ -98,11 +95,11 @@ The wiring gate checks exports, imports, routes, handlers, UI entry points, jobs
 ## Non-negotiable policy
 
 - Never push, merge, or open a pull request.
-- Never release a slice whose dependency has a failed gate.
+- Never release a slice before its dependencies are integrated.
 - Never let more than one writer mutate the same working tree.
 - Never let an implementer exceed its assigned slice or working tree.
 - Never claim a command, test, review, or commit happened without captured evidence.
-- Never continue when the bundled execution policy fails its negative probes; load it only in isolated worker homes.
+- Never initialize a run when the bundled execution policy fails its negative probes; load it only in isolated worker homes. Check every recorded external command against the policy, but do not rerun the full probe suite for state-only transitions.
 - Never create package/domain/application/infrastructure/UI folders merely to match a template; use the repository's current structure and split only when responsibilities require it.
 
 ### State command sequence
@@ -117,16 +114,11 @@ python3 <helper> resume-status --run-dir <run-dir>
 python3 <helper> acquire-writer --run-dir <run-dir> --slice S1 --owner <thread-id>
 python3 <helper> release-writer --run-dir <run-dir> --owner <thread-id>
 
-# Machine-run validation; repeat commands with the same attempt for one round
-python3 <helper> record-validation --run-dir <run-dir> --slice S1 --attempt 1 -- <test-command>
-
 # Locked post-checkpoint repairs, followed by validation of the final reviewed content
 python3 <helper> acquire-finalizer --run-dir <run-dir> --owner <thread-id>
 python3 <helper> release-writer --run-dir <run-dir> --owner <thread-id>
 python3 <helper> record-final-validation --run-dir <run-dir> --attempt 1 -- <test-command>
 
-# Agent-reviewed gates; attempt must be 1 or 2
-python3 <helper> set-slice-gate --run-dir <run-dir> --slice S1 \
-  --gate techDebt --status pass --attempt 1 --evidence <summary>
+# Close each slice immediately after integration
 python3 <helper> set-slice-status --run-dir <run-dir> --slice S1 --status complete
 ```

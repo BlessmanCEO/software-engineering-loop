@@ -5,7 +5,7 @@ description: Run the complete Codex software engineering loop without bundled lo
 
 # Software Engineering Loop Fast
 
-Run the complete engineering workflow in the active thread. Never invoke the full skill, run bundled software-engineering-loop scripts, or create `.codex/software-engineering/` records. Run project-owned tests, lint, typechecks, builds, and direct `codex review` commands when required.
+Run the complete engineering workflow in the active thread. Never invoke the full skill, run bundled software-engineering-loop scripts, or create `.codex/software-engineering/` records. Run project-owned tests, lint, typechecks, and builds directly. Run native Codex review only as `codex review --commit <checkpoint-sha>` against a clean local commit, never against uncommitted changes.
 
 Keep network access disabled unless the task explicitly requires it. Never push, merge, or open a pull request.
 
@@ -23,12 +23,11 @@ Keep network access disabled unless the task explicitly requires it. Never push,
 1. Read applicable `AGENTS.md`; inspect the repository, relevant code, conventions, worktree, tests, and build commands.
 2. Classify the task. Run repository, test, and relevant risk scouts in parallel, then have the planner produce the smallest slices with scope, acceptance criteria, `depends_on`, likely files, risks, and validation. Keep this plan in the active thread only.
 3. Start every dependency-ready slice whose likely files do not overlap. Give each implementer only its slice, dependency handoffs, and an isolated Git worktree based on the same commit. Make the smallest complete change and keep files below the 500-line design warning unless a justified exception exists. Integrate completed worktrees sequentially; discard or rerun stale work when integration reveals a conflict or changed dependency.
-4. Run independent project validation commands in parallel when their tools do not contend for the same generated state. Then use one read-only reviewer call to return both tech-debt and process-debt results. Repair with the same slice implementer and recheck the affected gate. Allow at most two attempts per gate; do not release a dependent slice until both pass.
-5. Complete all acceptance criteria and verify wider-system wiring. Create a local checkpoint commit only when unrelated worktree changes can be excluded safely.
-6. Run `codex review --commit <checkpoint-sha>` and the read-only lean, tech-debt, process-debt, and wider-system wiring reviews concurrently against that exact checkpoint. Aggregate valid findings into one repair pass with the matching slice implementer and rerun relevant validation.
-7. Recheck only affected gates after repairs, with at most two attempts per gate.
-8. Run the relevant project validation directly against the final content. Create a final local commit only when review or wiring fixes changed files; otherwise keep the checkpoint as the final commit.
-9. Produce the change explanation below.
+4. After all slices are integrated, complete all acceptance criteria and verify wider-system wiring. Create a local checkpoint commit only when unrelated worktree changes can be excluded safely.
+5. Run `codex review --commit <checkpoint-sha>` and the read-only lean, tech-debt, process-debt, and wider-system wiring reviews concurrently against that exact checkpoint. Never substitute `codex review --uncommitted`. Aggregate valid findings into one repair pass with the matching slice implementer.
+6. Recheck only affected gates after repairs, with at most two attempts per gate, then commit the repairs as a second local commit.
+7. Run the relevant project validation directly against the final content. If reviews made no changes, keep the checkpoint as the final commit.
+8. Produce the change explanation below.
 
 Stop as blocked when a required model, agent, command, validation, or review gate is unavailable or fails its retry budget. Never claim a test, review, or commit happened when it did not.
 

@@ -5,7 +5,9 @@ Two explicit Codex skills for implementing, validating, reviewing, and locally c
 - `$software-engineering-loop-fast`: the complete engineering workflow without bundled loop scripts or durable audit records. Planning, slices, validation, debt sweeps, Codex review, lean review, wiring review, and local commits still run.
 - `$software-engineering-loop-full`: the same engineering workflow with durable state, machine-bound audit evidence, and script-enforced transitions.
 
-Fast mode permits exactly one Sol/high writer. Full mode permits only its Sol/high `se-implementer` to edit task files. All Terra agents are read-only, workers never recursively delegate, and neither skill pushes, merges, or opens pull requests.
+Both modes use scope-limited writers sequentially: Sol/high for executable code and comments, and Terra/medium for maintained documentation. All other Terra agents are read-only, workers never recursively delegate, and neither skill pushes, merges, or opens pull requests.
+
+Both modes also run a Sol/high `se-code-commenter` and Terra/medium `se-documenter` after implementation. The commenter edits only concise rationale comments and docstrings; the documenter edits only maintained documentation. Writers run sequentially, never concurrently.
 
 Both skills end with a supervisor-written explanation of what changed, why, how it works, validation, risks, files, and commits. They add code comments only for non-obvious reasoning or constraints.
 

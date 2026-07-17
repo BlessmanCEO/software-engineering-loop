@@ -1,6 +1,6 @@
 # Full workflow
 
-The only writable worker is `se-implementer` (`gpt-5.6-sol`, high reasoning). It performs all task and source file edits. `se-reviewer` is Sol/high and read-only. All Terra profiles are read-only. The supervisor may directly create and update only `plan.md` and `slices/*.md`; mutate `state.json` only through `workflow_state.py`.
+Use three scope-limited writers sequentially: `se-implementer` (Sol/high) for executable code and tests, `se-code-commenter` (Sol/high) for comments and docstrings, and `se-documenter` (Terra/medium) for maintained documentation. `se-reviewer` is Sol/high and read-only; every other Terra profile is read-only. The supervisor may directly create and update only `plan.md` and `slices/*.md`; mutate `state.json` only through `workflow_state.py`.
 
 ## Worker execution
 
@@ -52,13 +52,15 @@ Create one writable `se-implementer` thread for the current slice. It receives o
 For each slice:
 
 1. Reuse the planning scout findings for the first slice. Run new read-only `se-scout` code/test passes only when findings are missing or a completed slice changed the relevant boundary.
-2. Acquire the writer lock for the implementer thread, let it make the smallest complete change, then release the lock.
-3. Run each validation command through `record-validation`, using the same attempt number for commands in one validation round.
-4. Run `se-reviewer` with the `tech-debt-reviewer` role read-only.
-5. If changes are requested, return findings to the same implementer thread, validate again, and rerun the tech gate.
-6. Run `se-reviewer` with the `process-debt-reviewer` role only after the tech gate passes.
-7. If changes are requested, send task or source file repairs to the same `se-implementer`; the supervisor may repair `plan.md` and `slices/*.md` directly, but must mutate `state.json` through the state helper. Then rerun affected gates.
-8. Record the handoff and close the slice.
+2. Acquire the writer lock for the implementer thread, let it make the smallest complete executable-code and test change, then release the lock.
+3. Acquire the writer lock for `se-code-commenter`. Let it edit only comments and docstrings in changed task files, then release the lock. Keep comments concise; move paragraph-sized rationale to documentation or simplify the code.
+4. Acquire the writer lock for Terra/medium `se-documenter`. Let it edit only maintained documentation required by changed behavior, interfaces, configuration, architecture, operations, or usage, then release the lock. It may report that no documentation update is needed.
+5. Run each validation command through `record-validation`, using the same attempt number for commands in one validation round.
+6. Run `se-reviewer` with the `tech-debt-reviewer` role read-only.
+7. If changes are requested, return findings to the same implementer thread, rerun the commenter and documenter when affected, validate again, and rerun the tech gate.
+8. Run `se-reviewer` with the `process-debt-reviewer` role only after the tech gate passes.
+9. If changes are requested, send executable-code or test repairs to `se-implementer`, comment repairs to `se-code-commenter`, and documentation repairs to `se-documenter`; the supervisor may repair `plan.md` and `slices/*.md` directly, but must mutate `state.json` through the state helper. Then rerun affected gates.
+10. Record the handoff and close the slice.
 
 Never run slice implementers concurrently in one working tree. The supervisor must hold `.writer.lock` for the active implementer; a second acquisition is a machine failure.
 
@@ -77,7 +79,7 @@ After all slices pass:
 1. Run a completion check across acceptance criteria, tests, hidden TODOs, records, and system wiring.
 2. Create a local checkpoint commit.
 3. Run `codex review --commit <checkpoint-sha>` through `record-review-command`, then record the interpreted result with `set-review` against that SHA.
-4. Acquire `acquire-finalizer`, send valid findings to one `se-implementer`, then release the lock before re-reviewing.
+4. Acquire `acquire-finalizer`, route valid findings to the matching scope-limited writer, rerun the commenter and documenter when affected, then release the lock before re-reviewing.
 5. Run `se-reviewer` for these read-only gates in order, repairing and rechecking each before continuing:
    - lean review
    - tech-debt review
@@ -99,7 +101,7 @@ The wiring gate checks exports, imports, routes, handlers, UI entry points, jobs
 - Never push, merge, or open a pull request.
 - Never let a later slice start while the current slice has a failed gate.
 - Never let more than one writer mutate the same working tree.
-- Never let any worker except Sol/high `se-implementer` edit task files.
+- Never let a writer exceed its scope: `se-implementer` edits executable code and tests, `se-code-commenter` edits comments and docstrings, and `se-documenter` edits maintained documentation.
 - Never claim a command, test, review, or commit happened without captured evidence.
 - Never continue when the bundled execution policy fails its negative probes; load it only in isolated worker homes.
 - Never create package/domain/application/infrastructure/UI folders merely to match a template; use the repository's current structure and split only when responsibilities require it.

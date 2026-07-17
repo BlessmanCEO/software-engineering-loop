@@ -36,6 +36,8 @@ Record:
 - acceptance criteria
 - likely and changed files
 - implementer thread ID
+- code-commenter thread ID, comments changed, and concise-rationale result
+- documenter thread ID, documentation changed, or the reason no documentation update was needed
 - implementation notes
 - validation commands, attempt, exit codes, output SHA-256, diff hash, stable content hash, and HEAD SHA
 - tech-debt sweep result and fixes

@@ -61,6 +61,8 @@ def content_hash(repo: Path) -> str:
     untracked = git(repo, "ls-files", "--others", "--exclude-standard", "-z", *PATHS)
     paths = set(entries).union(filter(None, untracked.split(b"\0")))
     for raw_path in sorted(paths):
+        if not os.path.lexists(repo / os.fsdecode(raw_path)):
+            continue
         metadata = entries.get(raw_path, b"")
         index_mode = metadata.split(b" ", 1)[0]
         if index_mode == b"160000":

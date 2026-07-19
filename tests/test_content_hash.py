@@ -24,20 +24,27 @@ def load_helper(path: Path):
 
 class ContentHashTest(unittest.TestCase):
     def test_staging_does_not_change_working_tree_hash(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            repo = Path(directory)
-            subprocess.run(["git", "init", "-q", str(repo)], check=True)
-            (repo / "z.txt").write_text("tracked\n")
-            subprocess.run(["git", "-C", str(repo), "add", "z.txt"], check=True)
-            (repo / "a.txt").write_text("same content\n")
-
-            for path in HELPERS:
+        for path in HELPERS:
+            with self.subTest(path=path), tempfile.TemporaryDirectory() as directory:
                 helper = load_helper(path)
+                repo = Path(directory)
+                subprocess.run(["git", "init", "-q", str(repo)], check=True)
+                (repo / "z.txt").write_text("tracked\n")
+                subprocess.run(["git", "-C", str(repo), "add", "z.txt"], check=True)
+                subprocess.run([
+                    "git", "-C", str(repo), "-c", "user.name=test",
+                    "-c", "user.email=test@example.com", "commit", "-qm", "initial",
+                ], check=True)
+
+                (repo / "a.txt").write_text("same content\n")
                 untracked = helper.content_hash(repo)
                 subprocess.run(["git", "-C", str(repo), "add", "a.txt"], check=True)
-                staged = helper.content_hash(repo)
-                subprocess.run(["git", "-C", str(repo), "rm", "--cached", "-q", "a.txt"], check=True)
-                self.assertEqual(untracked, staged, path)
+                self.assertEqual(untracked, helper.content_hash(repo))
+
+                (repo / "z.txt").rename(repo / "y.txt")
+                unstaged_rename = helper.content_hash(repo)
+                subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+                self.assertEqual(unstaged_rename, helper.content_hash(repo))
 
 
 if __name__ == "__main__":

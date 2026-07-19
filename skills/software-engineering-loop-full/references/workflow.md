@@ -35,6 +35,8 @@ Parallelize independent worker calls through the available execution tool, not s
 
 Use the planning loop. A bounded task can use one slice, but it still keeps the full state-and-evidence workflow.
 
+Do not generate or refresh a knowledge graph unless the task is broad, the repository is unfamiliar, or the user explicitly requests it. Prefer direct source inspection for contained work.
+
 Run these read-only `se-scout` specialists in parallel, with the listed role in each prompt:
 
 - `repo-scout`: map relevant modules, conventions, integration points, and likely files.
@@ -74,13 +76,9 @@ After all slices are integrated:
 
 1. Run a completion check across acceptance criteria, tests, hidden TODOs, records, and system wiring.
 2. Create a clean local checkpoint commit. Never run native Codex review against uncommitted changes.
-3. Concurrently run `codex review --commit <checkpoint-sha>` and `se-reviewer` for the following read-only gates against that exact checkpoint. Record their results sequentially through the state helper after all calls finish:
-   - lean review
-   - tech-debt review
-   - process-debt review
-   - wider-system wiring review
+3. Concurrently run `codex review --commit <checkpoint-sha>`, one unified system review, and only triggered specialist reviews against that exact checkpoint. Record their results sequentially through the state helper after all calls finish.
 4. Aggregate valid findings into one repair set. Acquire `acquire-finalizer`, route it to the relevant `se-implementer`, then release the lock before re-reviewing.
-5. After repairs, rerun the four content-bound reviewer gates concurrently so every passing result matches the repaired content. The checkpoint-bound Codex review remains attached to the checkpoint.
+5. After repairs, reuse passing evidence when the content hash is unchanged. When content changes, rerun affected validation, the unified system review, and only the specialist reviews whose scopes the repair touched. The checkpoint-bound Codex review remains attached to the checkpoint.
 6. Run the relevant commands through `record-final-validation`, binding passing machine evidence to the reviewed content.
 7. When review or wiring fixes changed files, create a second local commit and record it as final. Otherwise record the checkpoint SHA as the final SHA.
 

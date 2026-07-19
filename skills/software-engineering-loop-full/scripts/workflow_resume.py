@@ -42,7 +42,7 @@ def resume_status(args) -> None:
             next_action = "record checkpoint commit"
         else:
             next_action = next(
-                (f"{name} review" for name, item in state["reviews"].items() if item["status"] not in {"pass", "degraded"}),
+                (f"{name} review" for name, item in state["reviews"].items() if item["status"] not in {"pass", "degraded", "not_required"}),
                 "final validation" if state.get("finalValidation") != "pass" else "record final commit" if not state.get("finalSha") else "final check",
             )
     print(json.dumps({

@@ -8,7 +8,10 @@ from pathlib import Path
 
 from workflow_evidence import EMPTY_DIFF_HASH
 
-FINAL_GATES = ("completion", "codex", "lean", "tech_debt", "process_debt", "wiring")
+FINAL_GATES = (
+    "completion", "codex", "system", "security", "migration", "compatibility",
+    "concurrency", "performance", "ux_accessibility", "operations", "premortem", "recovery",
+)
 MAX_ATTEMPTS = 2
 
 
@@ -52,9 +55,11 @@ def problems(state: dict, final: bool, run_dir: Path | None = None, snapshot: di
             issues.append(f"{slice_id}: status is {record['status']}")
     if final:
         for name, review in state["reviews"].items():
-            allowed = {"pass", "degraded"} if name == "codex" else {"pass"}
+            allowed = {"not_required"} if not review.get("required", True) else {"pass", "degraded"} if name == "codex" else {"pass"}
             if review["status"] not in allowed:
                 issues.append(f"review {name}: {review['status']}")
+            if review["status"] == "not_required":
+                continue
             if not all(review.get(key) for key in ("evidence", "reviewedSha", "diffHash", "contentHash")):
                 issues.append(f"review {name}: incomplete evidence")
             if not 1 <= review.get("attempts", 0) <= MAX_ATTEMPTS:
@@ -92,9 +97,8 @@ def problems(state: dict, final: bool, run_dir: Path | None = None, snapshot: di
                 issues.append("final commit is not current HEAD")
             if snapshot["diffHash"] != EMPTY_DIFF_HASH:
                 issues.append("non-record worktree is not clean")
-            for name in ("lean", "tech_debt", "process_debt", "wiring"):
-                if state["reviews"][name].get("contentHash") != snapshot["contentHash"]:
-                    issues.append(f"review {name}: content does not match final content")
+            if state["reviews"]["system"].get("contentHash") != snapshot["contentHash"]:
+                issues.append("review system: content does not match final content")
             if any(item.get("contentHash") != snapshot["contentHash"] for item in final_runs):
                 issues.append("final validation: content does not match final content")
     return issues
@@ -105,12 +109,16 @@ def self_test(_: object) -> None:
     state = {
         "writerLock": None,
         "slices": {"S1": {"status": "complete", "closedSnapshot": {"contentHash": "c"}}},
-        "reviews": {name: {"status": "pass", "attempts": 1, "evidence": "ok", "reviewedSha": "a", "diffHash": "b", "contentHash": "c", "commandRuns": []} for name in FINAL_GATES},
+        "reviews": {name: {"status": "pass", "required": True, "attempts": 1, "evidence": "ok", "reviewedSha": "a", "diffHash": "b", "contentHash": "c", "commandRuns": []} for name in FINAL_GATES},
         "checkpointSha": "a", "finalSha": "b", "pushed": False,
         "finalValidation": "pass", "finalValidationAttempts": 1,
         "finalValidationRuns": [dict(evidence)],
     }
     state["reviews"]["codex"]["commandRuns"] = [{**evidence, "command": "codex review --commit a", "reviewedSha": "a"}]
+    for name in FINAL_GATES[3:]:
+        state["reviews"][name].update(status="not_required", required=False, attempts=0, evidence="", reviewedSha=None, diffHash=None, contentHash=None)
+    assert problems(state, True) == []
+    state["reviews"]["security"].update(status="pass", required=True, attempts=1, evidence="ok", reviewedSha="a", diffHash="b", contentHash="old")
     assert problems(state, True) == []
     state["slices"]["S1"]["closedSnapshot"] = None
     assert problems(state, True) == ["S1: closing snapshot is missing"]

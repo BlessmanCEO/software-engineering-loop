@@ -32,10 +32,12 @@ Use `scripts/workflow_state.py` for state mutations, evidence, attempt limits, c
 ## Controls
 
 - Resolve repository-answerable uncertainty before planning. Surface product or governance decisions instead of inventing them.
+- Do not generate or refresh a knowledge graph unless the task is broad, the repository is unfamiliar, or the user explicitly requests it.
 - Map every acceptance criterion to implementation and evidence.
 - Run independent writable slices concurrently only in isolated worktrees. Integrate one at a time under the repository writer lease.
 - Run targeted validation in the worker before integration and bind evidence to that prepared content.
 - Record one atomic structured review round per slice or batch. Aggregate findings into one repair prompt and stop after two failed rounds.
+- Reuse passing evidence when the content hash is unchanged. After repairs, rerun only affected validation and review scopes; the unified system review always covers the repaired final content.
 - Close a slice only when its criteria, proof obligations, validation, unified review, and handoff pass against matching content.
 - After all slices close, create a clean checkpoint commit before native Codex review.
 - Run native review only as `codex review --commit <checkpoint-sha>`, never against uncommitted changes.

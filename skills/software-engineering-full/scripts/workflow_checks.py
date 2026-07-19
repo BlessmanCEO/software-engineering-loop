@@ -114,11 +114,8 @@ def problems(state: dict, final: bool, run_dir: Path | None = None, snapshot: di
                 issues.append("final commit is not current HEAD")
             if snapshot["diffHash"] != EMPTY_DIFF_HASH:
                 issues.append("non-record worktree is not clean")
-            for name, review in state["reviews"].items():
-                if name in {"completion", "codex"} or review["status"] == "not_required":
-                    continue
-                if review.get("contentHash") != snapshot["contentHash"]:
-                    issues.append(f"review {name}: content does not match final content")
+            if state["reviews"]["system"].get("contentHash") != snapshot["contentHash"]:
+                issues.append("review system: content does not match final content")
             if any(item.get("contentHash") != snapshot["contentHash"] for item in final_runs):
                 issues.append("final validation: content does not match final content")
     return issues
@@ -137,6 +134,8 @@ def self_test(_: object) -> None:
     state["reviews"]["codex"]["commandRuns"] = [{**evidence, "command": "codex review --commit a", "reviewedSha": "a"}]
     for name in FINAL_GATES[3:]:
         state["reviews"][name].update(status="not_required", required=False, attempts=0, evidence="", reviewedSha=None, diffHash=None, contentHash=None)
+    assert problems(state, True) == []
+    state["reviews"]["security"].update(status="pass", required=True, attempts=1, evidence="ok", reviewedSha="a", diffHash="b", contentHash="old")
     assert problems(state, True) == []
     state["slices"]["S1"]["closedSnapshot"] = None
     assert problems(state, True) == ["S1: closing snapshot is missing"]

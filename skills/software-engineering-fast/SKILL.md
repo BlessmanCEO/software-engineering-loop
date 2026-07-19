@@ -15,6 +15,8 @@ Create a compact brief containing the objective, acceptance criteria, non-goals,
 
 For a very small task, let the implementer inspect the relevant code directly. Otherwise run only the necessary read-only scouts in parallel for repository structure, tests and validation commands, and risk or integration points.
 
+Do not generate or refresh a knowledge graph unless the task is broad, the repository is unfamiliar, or the user explicitly requests it. Prefer direct source inspection for contained work.
+
 ## 3. Confirm the route
 
 Stop fast mode and recommend restarting with full mode if inspection reveals authentication or authorization work, migrations, destructive data operations, a major public API change, infrastructure, security-sensitive code, complex concurrency, a large cross-package refactor, or formal audit requirements. Never switch modes silently.
@@ -55,9 +57,13 @@ Integrate prepared slices into the primary worktree one at a time. Confirm actua
 
 Use one Sol/high reviewer call for a slice or integration batch. In one result, check acceptance criteria, correctness, regression risk, tests, wiring, maintainability, scope drift, and process issues. Do not split technical-debt and process-debt review into separate agents.
 
+Add a specialist review only when the change triggers security, migration, compatibility, concurrency, performance, UX/accessibility, or operations risk.
+
 ## 10. Repair once
 
 Aggregate valid findings into one prompt for the original implementer. Rerun affected tests and recheck only affected review areas. Allow at most two repair rounds.
+
+Reuse passing validation and review evidence when the content hash is unchanged.
 
 ## 11. Review a committed checkpoint
 
@@ -65,6 +71,7 @@ When the task is complete and the non-record worktree is clean, create a local c
 
 - `codex review --commit <checkpoint-sha>`
 - one unified system reviewer against the same checkpoint
+- specialist reviewers only for triggered risk areas
 
 Never use `codex review --uncommitted`. The unified reviewer checks end-to-end wiring, acceptance criteria, hidden TODOs, orphaned components, compatibility, documentation, and simplicity.
 

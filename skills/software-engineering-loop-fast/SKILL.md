@@ -14,18 +14,18 @@ Keep network access disabled unless the task explicitly requires it. Never push,
 - Use read-only `se-scout` agents for repository, test, and risk discovery and one read-only `se-planner` for the sliced dependency plan. Do not add a separate parallelism planner.
 - Use writable `se-implementer` agents, configured as `gpt-5.6-sol` with high reasoning, for complete slices: executable code, tests, necessary rationale comments, and maintained documentation. Reuse the same slice agent for repairs.
 - Run ready slices with disjoint likely files concurrently only in isolated Git worktrees. Integrate them into the primary worktree one at a time. Run overlapping or dependent slices sequentially.
-- Use read-only Sol/high `se-reviewer` agents for every approval gate. Terra agents may assist only with bounded read-only work and cannot approve gates.
+- Use one read-only Sol/high `se-reviewer` for the unified system gate. Add a read-only specialist only for triggered security, migration, compatibility, concurrency, performance, UX/accessibility, or operations risk. Terra agents may assist only with bounded read-only work and cannot approve gates.
 - Prefer installed native profiles. Never invoke `run_profile.py`, a state script, or any other bundled loop script in fast mode, and never mislabel an unconfigured model.
 - Keep subagent depth at one. Workers never delegate.
 
 ## Workflow
 
 1. Read applicable `AGENTS.md`; inspect the repository, relevant code, conventions, worktree, tests, and build commands.
-2. Classify the task. Run repository, test, and relevant risk scouts in parallel, then have the planner produce the smallest slices with scope, acceptance criteria, `depends_on`, likely files, risks, and validation. Keep this plan in the active thread only.
+2. Classify the task. Run repository, test, and relevant risk scouts in parallel, then have the planner produce the smallest slices with scope, acceptance criteria, `depends_on`, likely files, risks, and validation. Keep this plan in the active thread only. Do not generate or refresh a knowledge graph unless the task is broad, the repository is unfamiliar, or the user explicitly requests it.
 3. Start every dependency-ready slice whose likely files do not overlap. Give each implementer only its slice, dependency handoffs, and an isolated Git worktree based on the same commit. Make the smallest complete change and keep files below the 500-line design warning unless a justified exception exists. Integrate completed worktrees sequentially; discard or rerun stale work when integration reveals a conflict or changed dependency.
 4. After all slices are integrated, complete all acceptance criteria and verify wider-system wiring. Create a local checkpoint commit only when unrelated worktree changes can be excluded safely.
-5. Run `codex review --commit <checkpoint-sha>` and the read-only lean, tech-debt, process-debt, and wider-system wiring reviews concurrently against that exact checkpoint. Never substitute `codex review --uncommitted`. Aggregate valid findings into one repair pass with the matching slice implementer.
-6. Recheck only affected gates after repairs, with at most two attempts per gate, then commit the repairs as a second local commit.
+5. Run `codex review --commit <checkpoint-sha>`, one unified system review, and only triggered specialist reviews concurrently against that exact checkpoint. Never substitute `codex review --uncommitted`. Aggregate valid findings into one repair pass with the matching slice implementer.
+6. Reuse passing evidence when the content hash is unchanged. After repairs, rerun affected validation, the unified system review, and only affected specialist reviews, with at most two attempts per gate, then commit the repairs as a second local commit.
 7. Run the relevant project validation directly against the final content. If reviews made no changes, keep the checkpoint as the final commit.
 8. Produce the change explanation below.
 

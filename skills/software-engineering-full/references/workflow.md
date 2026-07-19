@@ -36,6 +36,8 @@ Run repository, test, and risk scouts in parallel. Add the reusable `se-speciali
 | User-facing workflows | UX/accessibility |
 | Deployment or configuration | Operations |
 
+Do not generate or refresh a knowledge graph unless the task is broad, the repository is unfamiliar, or the user explicitly requests it. Direct source inspection is the default.
+
 ## 4. Resolve uncertainty
 
 Classify unanswered questions in `plan.md`:
@@ -88,7 +90,7 @@ Use one structured reviewer call covering correctness, acceptance criteria, regr
 
 ## 11. Repair and revalidate
 
-Aggregate findings into one repair pass for the original implementer. Rerun affected validation and review areas, preserve findings and resolutions, and stop after two failed rounds.
+Aggregate findings into one repair pass for the original implementer. Reuse passing evidence when the content hash is unchanged. When content changes, rerun affected validation, the unified system review, and only the specialist reviews whose scopes the repair touched. Preserve findings and resolutions, and stop after two failed rounds.
 
 ## 12. Close the slice
 
@@ -122,7 +124,7 @@ For production-impacting work, verify detection, logs, metrics, tracing, alerts,
 
 ## 18. Run one final repair round
 
-Aggregate valid final findings for the relevant original implementer. Rerun affected specialist and unified reviews. Keep native Codex review attached to the checkpoint. Record which findings were fixed or rejected.
+Aggregate valid final findings for the relevant original implementer. Rerun the unified system review and affected specialists only. Keep native Codex review attached to the checkpoint and reuse other passing evidence. Record which findings were fixed or rejected.
 
 ## 19. Validate the exact final content
 

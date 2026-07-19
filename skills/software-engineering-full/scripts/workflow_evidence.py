@@ -57,8 +57,14 @@ def diff_hash(repo: Path) -> str:
 def content_hash(repo: Path) -> str:
     digest = hashlib.sha256()
     tracked = git(repo, "ls-files", "--stage", "-z", *PATHS)
-    for entry in sorted(filter(None, tracked.split(b"\0"))):
+    entries = {}
+    for entry in filter(None, tracked.split(b"\0")):
         metadata, raw_path = entry.split(b"\t", 1)
+        entries[raw_path] = metadata
+    untracked = git(repo, "ls-files", "--others", "--exclude-standard", "-z", *PATHS)
+    paths = set(entries).union(filter(None, untracked.split(b"\0")))
+    for raw_path in sorted(paths):
+        metadata = entries.get(raw_path, b"")
         index_mode = metadata.split(b" ", 1)[0]
         if index_mode == b"160000":
             path = repo / os.fsdecode(raw_path)
@@ -69,9 +75,6 @@ def content_hash(repo: Path) -> str:
             digest.update(raw_path + b"\0submodule\0" + object_id)
         else:
             hash_path(digest, repo, raw_path)
-    untracked = git(repo, "ls-files", "--others", "--exclude-standard", "-z", *PATHS)
-    for raw_path in sorted(filter(None, untracked.split(b"\0"))):
-        hash_path(digest, repo, raw_path)
     return digest.hexdigest()
 
 

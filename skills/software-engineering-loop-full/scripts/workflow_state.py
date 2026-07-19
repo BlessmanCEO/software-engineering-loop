@@ -18,7 +18,11 @@ from workflow_resume import resume_status
 from workflow_store import acquire_finalizer, acquire_writer, read_state, release_writer, write_state
 
 SLICE_STATUSES = {"planned", "in_progress", "complete", "blocked"}
-FINAL_GATES = ("completion", "codex", "lean", "tech_debt", "process_debt", "wiring")
+FINAL_GATES = (
+    "completion", "codex", "system", "security", "migration", "compatibility",
+    "concurrency", "performance", "ux_accessibility", "operations", "premortem", "recovery",
+)
+REQUIRED_FINAL_GATES = {"completion", "codex", "system"}
 MAX_ATTEMPTS = 2
 REVIEW_ORDER = FINAL_GATES
 
@@ -84,7 +88,8 @@ def init(args) -> None:
         },
         "reviews": {
             name: {
-                "status": "pending",
+                "status": "pending" if name in REQUIRED_FINAL_GATES else "not_required",
+                "required": name in REQUIRED_FINAL_GATES,
                 "attempts": 0,
                 "evidence": "",
                 "reviewedSha": None,
@@ -138,8 +143,12 @@ def record_final_validation(args) -> None:
     run_dir = Path(args.run_dir)
     state = read_state(run_dir)
     require_no_writer(run_dir, state)
-    if state["reviews"]["wiring"]["status"] != "pass":
-        raise SystemExit("final validation requires a passing wiring review")
+    required_reviews = [
+        review for name, review in state["reviews"].items()
+        if name not in {"completion", "codex"} and review.get("required", True)
+    ]
+    if any(review["status"] != "pass" for review in required_reviews):
+        raise SystemExit("final validation requires all unified and triggered reviews to pass")
     previous = state.get("finalValidationAttempts", 0)
     prior = [item for item in state.get("finalValidationRuns", []) if item.get("attempt") == previous]
     current_hash = content_hash(Path(state["repo"]))
@@ -174,7 +183,7 @@ def set_review(args) -> None:
     previous = review.get("attempts", 0)
     command_attempt = max((item.get("attempt", 0) for item in review.get("commandRuns", [])), default=0)
     index = REVIEW_ORDER.index(args.name)
-    if any(state["reviews"][name]["status"] not in {"pass", "degraded"} for name in REVIEW_ORDER[:index]):
+    if any(state["reviews"][name]["status"] not in {"pass", "degraded", "not_required"} for name in REVIEW_ORDER[:index]):
         raise SystemExit("previous final review has not passed")
     if args.name == "codex" and not state.get("checkpointSha"):
         raise SystemExit("Codex review requires a checkpoint commit")
@@ -183,7 +192,7 @@ def set_review(args) -> None:
     ):
         raise SystemExit("completion review requires every slice complete")
     snapshot = evidence_snapshot(Path(state["repo"]))
-    if review["status"] == "pending":
+    if review["status"] in {"pending", "not_required"}:
         expected = max(previous + 1, command_attempt, 1)
     elif review["status"] == "changes_requested":
         expected = previous + 1
@@ -202,6 +211,7 @@ def set_review(args) -> None:
     terminal_failure = args.attempt == MAX_ATTEMPTS and status in {"changes_requested", "blocked"}
     review.update(
         status="blocked" if terminal_failure else status,
+        required=True,
         attempts=args.attempt,
         evidence=args.evidence,
         reviewedSha=args.sha or snapshot["headSha"],
@@ -269,10 +279,15 @@ def set_commit(args) -> None:
                 git(repo, "merge-base", "--is-ancestor", checkpoint, sha)
             except subprocess.CalledProcessError:
                 raise SystemExit("final repair commit must descend from the reviewed checkpoint") from None
-        for name in ("lean", "tech_debt", "process_debt", "wiring"):
-            review = state["reviews"][name]
-            if review["status"] != "pass" or review.get("contentHash") != snapshot["contentHash"]:
-                raise SystemExit(f"final content was not passed by {name} review")
+        system = state["reviews"]["system"]
+        if system["status"] != "pass" or system.get("contentHash") != snapshot["contentHash"]:
+            raise SystemExit("final content was not passed by system review")
+        if any(
+            review["status"] != "pass"
+            for name, review in state["reviews"].items()
+            if name not in {"completion", "codex", "system"} and review.get("required", True)
+        ):
+            raise SystemExit("a triggered specialist review did not pass")
         runs = [
             item for item in state.get("finalValidationRuns", [])
             if item.get("attempt") == state.get("finalValidationAttempts")

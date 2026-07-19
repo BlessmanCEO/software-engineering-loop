@@ -501,11 +501,15 @@ def set_commit(args) -> None:
                 git(repo, "merge-base", "--is-ancestor", checkpoint, sha)
             except subprocess.CalledProcessError:
                 raise SystemExit("final repair commit must descend from the reviewed checkpoint") from None
-        for name, review in state["reviews"].items():
-            if name in {"completion", "codex"} or not review.get("required", True):
-                continue
-            if review["status"] != "pass" or review.get("contentHash") != snapshot["contentHash"]:
-                raise SystemExit(f"final content was not passed by {name} review")
+        system = state["reviews"]["system"]
+        if system["status"] != "pass" or system.get("contentHash") != snapshot["contentHash"]:
+            raise SystemExit("final content was not passed by system review")
+        if any(
+            review["status"] != "pass"
+            for name, review in state["reviews"].items()
+            if name not in {"completion", "codex", "system"} and review.get("required", True)
+        ):
+            raise SystemExit("a triggered specialist review did not pass")
         runs = [
             item for item in state.get("finalValidationRuns", [])
             if item.get("attempt") == state.get("finalValidationAttempts")

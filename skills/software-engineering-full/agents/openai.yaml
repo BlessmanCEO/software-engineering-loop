@@ -1,4 +1,4 @@
 interface:
   display_name: "Software Engineering Full"
-  short_description: "Audited workflow for high-risk coding tasks"
-  default_prompt: "Use $software-engineering-full for this high-risk coding task."
+  short_description: "Orchestrate complete coding tasks without records"
+  default_prompt: "Use $software-engineering-full to complete, audit, validate, commit, and review this coding task."

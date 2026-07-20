@@ -1,0 +1,4 @@
+interface:
+  display_name: "Software Engineering Audit & Fix"
+  short_description: "Find and fix bugs, security, and debt"
+  default_prompt: "Use $software-engineering-audit-fix to audit this change, fix valid findings, and validate the result."

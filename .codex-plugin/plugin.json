@@ -1,15 +1,15 @@
 {
   "name": "software-engineering-loop",
-  "version": "0.1.0+codex.20260719181314",
-  "description": "Original loop skills plus separate fast-delivery and fully audited workflows for Codex.",
+  "version": "0.1.0+codex.20260720075234",
+  "description": "Recordless software engineering prompt chains for discovery, delivery, audit, and review.",
   "author": {
     "name": "BlessmanCEO"
   },
   "skills": "./skills/",
   "interface": {
     "displayName": "Software Engineering Loop",
-    "shortDescription": "Choose an original or revised engineering workflow",
-    "longDescription": "Keeps the original fast and full loop skills while adding separately named lightweight delivery and high-risk audited workflows.",
+    "shortDescription": "Compose focused engineering prompt chains",
+    "longDescription": "One adaptive full workflow chains optional discovery, complete implementation, audit and repair, validation, local commits, and commit-bound Codex review without durable records.",
     "developerName": "BlessmanCEO",
     "category": "Productivity",
     "capabilities": [
@@ -19,10 +19,9 @@
       "Local commits"
     ],
     "defaultPrompt": [
-      "Use $software-engineering-loop-fast for this coding task.",
-      "Use $software-engineering-loop-full for this audited coding task.",
-      "Use $software-engineering-fast for this coding task.",
-      "Use $software-engineering-full for this high-risk coding task."
+      "Use $software-engineering-full for this coding task.",
+      "Use $software-engineering-implement-integrate to build this task.",
+      "Use $software-engineering-audit-fix to audit and repair this change."
     ]
   }
 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Software Engineering Implement & Integrate"
+  short_description: "Implement, validate, and integrate complete changes"
+  default_prompt: "Use $software-engineering-implement-integrate to implement and integrate this coding task completely."

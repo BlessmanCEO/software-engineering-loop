@@ -1,6 +1,0 @@
-interface:
-  display_name: "Software Engineering Loop Full"
-  short_description: "Audited planning, evidence, review, and local commits"
-  default_prompt: "Use $software-engineering-loop-full for this coding task."
-policy:
-  allow_implicit_invocation: false

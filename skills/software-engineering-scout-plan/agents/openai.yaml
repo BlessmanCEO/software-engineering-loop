@@ -1,0 +1,4 @@
+interface:
+  display_name: "Software Engineering Scout & Plan"
+  short_description: "Scout code and create only the plan needed"
+  default_prompt: "Use $software-engineering-scout-plan to inspect this task and produce the smallest useful implementation plan."

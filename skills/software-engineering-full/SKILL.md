@@ -1,56 +1,22 @@
 ---
 name: software-engineering-full
-description: Run the durable, audited software engineering workflow for high-risk, large, regulated, security-sensitive, or operationally important coding work. Use when the user invokes full mode or needs formal task contracts, dependency-aware slices, content-bound validation evidence, triggered specialist reviews, recovery, commit-bound Codex review, rollback planning, and local audit records. Never push or silently switch modes.
+description: Orchestrate a complete coding task without durable workflow records by chaining focused scout/plan, implement/integrate, and audit/fix prompts, then validating, committing, running commit-bound Codex review, and making a repair commit when needed. Use when the user requests the full software-engineering workflow or wants an end-to-end implementation with review and local commits.
 ---
 
 # Software Engineering Full
 
-Stay in full mode for the entire task. Read [workflow.md](references/workflow.md) completely before starting and [records.md](references/records.md) before creating records. Keep network access disabled unless the task requires it. Never push, merge, or open a pull request.
+Act as the orchestration agent and own the task through reviewed local commits. This is a prompt chain, not a state machine: combine, adapt, or skip process steps when evidence says they add no value. The user request and repository instructions always win.
 
-## Roles
+Do not create workflow records, controller state, evidence manifests, or checkpoint commits. Preserve unrelated changes. Never push, merge, or open a pull request.
 
-- Run repository, test, and risk scouts in parallel.
-- Use the read-only `se-specialist` only for triggered security, migration and rollback, compatibility, concurrency, performance, UX/accessibility, or operations work.
-- Use one read-only `se-planner` for the dependency-aware plan.
-- Use one Sol/high `se-implementer` per slice for code, tests, targeted validation, concise rationale comments, and maintained documentation.
-- Use one Sol/high `se-reviewer` for each unified slice or final review round. Do not split technical-debt and process-debt into separate calls.
-- Reuse the original implementer for repairs. Workers never delegate.
+## Prompt Chain
 
-Use native typed agents only when the required installed profiles are selectable. Otherwise invoke `scripts/run_profile.py` with the matching bundled profile; it applies the exact model, reasoning, sandbox, and instructions while disabling worker delegation.
+1. **Orchestrate:** Read applicable `AGENTS.md`, inspect the worktree and immediate code path, and define the objective, acceptance criteria, constraints, affected surface, and done condition.
+2. **Scout and plan when useful:** Invoke `$software-engineering-scout-plan` only when ownership, callers, tests, risks, dependencies, or implementation order are genuinely unclear. Let that skill decide whether scouting, planning, both, or neither is warranted.
+3. **Implement and integrate:** Invoke `$software-engineering-implement-integrate` to complete the entire task, including required tests, documentation, wiring, and validation.
+4. **Audit and repair:** Invoke `$software-engineering-audit-fix` on the completed uncommitted change. Ensure bugs, security, technical debt, and process debt are considered at a depth proportional to the change. Fix verified in-scope findings and validate the repairs.
+5. **Commit:** Inspect the final diff and status, run `git diff --check`, and create the first local commit. This is the completed audited change, not a checkpoint.
+6. **Codex review:** Run `codex review --commit <commit-sha>`. If it finds valid issues, fix them in one pass, rerun affected validation, and create one second local commit. Do not create an empty second commit or restart the whole workflow.
+7. **Report:** Summarize the completed behavior, checks, audit, Codex review, residual risks, commit hashes, and that nothing was pushed.
 
-## Durable controller
-
-Initialize the versioned run after inspecting applicable `AGENTS.md`, the repository, relevant code, tests, build commands, and worktree:
-
-```bash
-python3 <skill-dir>/scripts/workflow_state.py init \
-  --repo <repo> --run-id <run-id> --task-class <class> --slices S1 S2
-```
-
-Use `scripts/workflow_state.py` for state mutations, evidence, attempt limits, commit binding, and leases. The supervisor may directly maintain `plan.md` and `slices/*.md`; do not hand-edit `state.json`. Run `--help` and `self-test` before the first real use after an update. Use `resume-status` to recover the next legal action.
-
-## Controls
-
-- Resolve repository-answerable uncertainty before planning. Surface product or governance decisions instead of inventing them.
-- Do not generate or refresh a knowledge graph unless the task is broad, the repository is unfamiliar, or the user explicitly requests it.
-- Map every acceptance criterion to implementation and evidence.
-- Run independent writable slices concurrently only in isolated worktrees. Integrate one at a time under the repository writer lease.
-- Run targeted validation in the worker before integration and bind evidence to that prepared content.
-- Record one atomic structured review round per slice or batch. Aggregate findings into one repair prompt and stop after two failed rounds.
-- Reuse passing evidence when the content hash is unchanged. After repairs, rerun only affected validation and review scopes; the unified system review always covers the repaired final content.
-- Close a slice only when its criteria, proof obligations, validation, unified review, and handoff pass against matching content.
-- After all slices close, create a clean checkpoint commit before native Codex review.
-- Run native review only as `codex review --commit <checkpoint-sha>`, never against uncommitted changes.
-- Run unified and triggered final reviews against the checkpoint. For critical work, add the pre-mortem and observability/recovery checks described in the workflow.
-- Commit repaired content separately; a changed final commit must descend from the reviewed checkpoint.
-- Never claim a command, test, review, commit, or evidence artifact that was not captured.
-
-## Finish
-
-Run relevant final validation against the exact reviewed content, record the final commit, produce the evidence manifest, and run:
-
-```bash
-python3 <skill-dir>/scripts/workflow_state.py check --run-dir <run-dir> --final
-```
-
-Report the change, reason, behavior, validation, reviews, risks, limitations, deferred work, files, local commits, rollback notes when relevant, and that nothing was pushed. Do not spawn a reporting agent.
+If a required implementation, validation, commit, or review cannot run, report the exact blocker without pretending the chain completed.

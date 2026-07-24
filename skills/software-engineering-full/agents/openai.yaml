@@ -1,4 +1,4 @@
 interface:
   display_name: "Software Engineering Full"
-  short_description: "Orchestrate complete coding tasks without records"
-  default_prompt: "Use $software-engineering-full to complete, audit, validate, commit, and review this coding task."
+  short_description: "Complete tasks with review and retrospective"
+  default_prompt: "Use $software-engineering-full to complete, audit, review, retrospect, and publish this coding task."

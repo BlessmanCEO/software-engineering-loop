@@ -1,7 +1,7 @@
 {
   "name": "software-engineering-loop",
-  "version": "0.1.0+codex.20260720075234",
-  "description": "Recordless software engineering prompt chains for discovery, delivery, audit, and review.",
+  "version": "0.1.0+codex.20260724102550",
+  "description": "Recordless software engineering prompt chains for discovery, delivery, audit, review, and retrospective.",
   "author": {
     "name": "BlessmanCEO"
   },
@@ -9,14 +9,15 @@
   "interface": {
     "displayName": "Software Engineering Loop",
     "shortDescription": "Compose focused engineering prompt chains",
-    "longDescription": "One adaptive full workflow chains optional discovery, complete implementation, audit and repair, validation, local commits, and commit-bound Codex review without durable records.",
+    "longDescription": "One adaptive full workflow chains optional discovery, implementation, audit and repair, validation, commit-bound Codex review, honest retrospective, and delivery through one reusable pull request.",
     "developerName": "BlessmanCEO",
     "category": "Productivity",
     "capabilities": [
       "Read",
       "Write",
       "Subagents",
-      "Local commits"
+      "Local commits",
+      "Pull requests"
     ],
     "defaultPrompt": [
       "Use $software-engineering-full for this coding task.",

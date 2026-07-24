@@ -1,0 +1,4 @@
+interface:
+  display_name: "Software Engineering Retrospective"
+  short_description: "Explain commits and critique completed engineering work"
+  default_prompt: "Use $software-engineering-retrospective to explain the commits, assess the decisions honestly, and say what should be done differently."

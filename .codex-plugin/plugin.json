@@ -1,6 +1,6 @@
 {
   "name": "software-engineering-loop",
-  "version": "0.1.0+codex.20260724102550",
+  "version": "0.1.0+codex.20260818154420",
   "description": "Recordless software engineering prompt chains for discovery, delivery, audit, review, and retrospective.",
   "author": {
     "name": "BlessmanCEO"
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Software Engineering Loop",
     "shortDescription": "Compose focused engineering prompt chains",
-    "longDescription": "One adaptive full workflow chains optional discovery, implementation, audit and repair, validation, commit-bound Codex review, honest retrospective, and delivery through one reusable pull request.",
+    "longDescription": "One adaptive full workflow chains graph-assisted discovery, iterative implementation with early review gates, audit and repair, validation, honest retrospective, and delivery through one reusable pull request.",
     "developerName": "BlessmanCEO",
     "category": "Productivity",
     "capabilities": [

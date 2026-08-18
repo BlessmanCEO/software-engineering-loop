@@ -1,4 +1,4 @@
 interface:
   display_name: "Software Engineering Full"
-  short_description: "Complete tasks with review and retrospective"
-  default_prompt: "Use $software-engineering-full to complete, audit, review, retrospect, and publish this coding task."
+  short_description: "Complete tasks with iterative review gates"
+  default_prompt: "Use $software-engineering-full to implement and review this coding task in safe slices, retrospect, and publish one pull request."

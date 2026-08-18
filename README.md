@@ -2,10 +2,10 @@
 
 This plugin provides one full recordless workflow and its four independently invokable prompt chains.
 
-- `$software-engineering-full`: decides what discovery is useful, implements complex or high-risk work in reviewable vertical slices, audits and adversarially reviews each slice, validates the integrated result, retrospectively critiques it, and publishes or updates one pull request.
+- `$software-engineering-full`: decides what discovery is useful, diagnoses reported bugs against a runnable failure signal, implements complex or high-risk work in reviewable vertical slices, separately reviews standards and spec conformance at each audit gate, validates the integrated result, retrospectively critiques it, and publishes or updates one pull request.
 - `$software-engineering-scout-plan`: scouts, plans, or does both when the task has real uncertainty, using relevant `.understand-anything` graph context for wider-system discovery when available.
-- `$software-engineering-implement-integrate`: implements, validates, and integrates a complete change.
-- `$software-engineering-audit-fix`: checks bugs, security, technical debt, and process debt, then fixes and validates confirmed findings.
+- `$software-engineering-implement-integrate`: diagnoses reported bugs when needed, then implements, validates, and integrates a complete change.
+- `$software-engineering-audit-fix`: separately checks standards and spec conformance, then audits bugs, security, technical debt, and process debt before fixing and validating confirmed findings.
 - `$software-engineering-retrospective`: explains each task commit, its rationale and tradeoffs, then gives an honest verdict and a better approach where warranted.
 
 The full workflow chains the four subprocess skills. They are guidance prompts, not a controller or state machine, so the orchestrator adapts them to the task. Contained, low-risk changes stay in one pass; complex or high-risk changes use relevant knowledge-graph context when available, reviewed slice checkpoint commits, and repeated review/fix gates before integration. The plugin creates no workflow records, reuses one canonical branch and pull request across threads, and never merges without an explicit request.

@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Software Engineering Loop",
     "shortDescription": "Compose focused engineering prompt chains",
-    "longDescription": "One adaptive full workflow chains graph-assisted discovery, iterative implementation with early review gates, audit and repair, validation, honest retrospective, and delivery through one reusable pull request.",
+    "longDescription": "One adaptive full workflow chains graph-assisted discovery, risk-adjusted implementation, contextual independent review, validation, retrospective when useful, and delivery through one reusable pull request.",
     "developerName": "BlessmanCEO",
     "category": "Productivity",
     "capabilities": [

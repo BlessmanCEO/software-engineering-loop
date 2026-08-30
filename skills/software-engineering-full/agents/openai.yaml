@@ -1,4 +1,4 @@
 interface:
   display_name: "Software Engineering Full"
-  short_description: "Complete tasks with iterative review gates"
-  default_prompt: "Use $software-engineering-full to implement and review this coding task in safe slices, retrospect, and publish one pull request."
+  short_description: "Complete tasks with risk-adjusted review gates"
+  default_prompt: "Use $software-engineering-full to implement and review this coding task with gates proportional to risk, then publish one pull request."

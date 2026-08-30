@@ -1,14 +1,14 @@
 # Software Engineering Workflows
 
-This Codex plugin and Pi package provide one full recordless workflow and its four independently invokable prompt chains.
+This Codex plugin and Pi package provide one full recordless workflow and its four independently invocable prompt chains.
 
-- `$software-engineering-full`: decides what discovery is useful, implements complex or high-risk work in reviewable vertical slices, audits and adversarially reviews each slice, validates the integrated result, retrospectively critiques it, and publishes or updates one pull request.
+- `$software-engineering-full`: chooses low, medium, or high-risk review gates, implements coherent vertical slices, validates and independently reviews only the required diffs, retrospectively critiques substantial work, and publishes or updates one pull request.
 - `$software-engineering-scout-plan`: scouts, plans, or does both when the task has real uncertainty, using relevant `.understand-anything` graph context for wider-system discovery when available.
 - `$software-engineering-implement-integrate`: implements, validates, and integrates a complete change.
 - `$software-engineering-audit-fix`: checks bugs, security, technical debt, and process debt, then fixes and validates confirmed findings.
 - `$software-engineering-retrospective`: explains each task commit, its rationale and tradeoffs, then gives an honest verdict and a better approach where warranted.
 
-The full workflow chains the four subprocess skills. They are guidance prompts, not a controller or state machine, so the orchestrator adapts them to the task. Contained, low-risk changes stay in one pass; complex or high-risk changes use relevant knowledge-graph context when available, reviewed slice checkpoint commits, and repeated review/fix gates before integration. The plugin creates no workflow records, reuses one canonical branch and pull request across threads, and never merges without an explicit request.
+The full workflow chains only the subprocess skills justified by the task. Low-risk work gets one final independent review, medium-risk work gets slice audits and one cumulative review, and high-risk work adds independent slice reviews. Every reviewer receives the objective, acceptance criteria, constraints, risk, and observed validation results; unchanged diffs are never reviewed twice. The plugin creates no workflow records, reuses one canonical branch and pull request across threads, and never merges without an explicit request.
 
 ## Install in Codex
 
@@ -42,5 +42,9 @@ Start or restart Pi, then invoke one skill:
 /skill:software-engineering-audit-fix Audit and repair this change.
 /skill:software-engineering-retrospective Explain and critique this completed task.
 ```
+
+## Evaluation
+
+[`EVALUATION.md`](EVALUATION.md) defines a five-case paired corpus and scorecard for comparing the full workflow with the implementation-only control.
 
 Merging remains a separate explicit action.

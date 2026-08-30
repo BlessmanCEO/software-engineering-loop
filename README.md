@@ -1,6 +1,6 @@
 # Software Engineering Workflows
 
-This plugin provides one full recordless workflow and its four independently invokable prompt chains.
+This Codex plugin and Pi package provide one full recordless workflow and its four independently invokable prompt chains.
 
 - `$software-engineering-full`: decides what discovery is useful, implements complex or high-risk work in reviewable vertical slices, audits and adversarially reviews each slice, validates the integrated result, retrospectively critiques it, and publishes or updates one pull request.
 - `$software-engineering-scout-plan`: scouts, plans, or does both when the task has real uncertainty, using relevant `.understand-anything` graph context for wider-system discovery when available.
@@ -10,7 +10,7 @@ This plugin provides one full recordless workflow and its four independently inv
 
 The full workflow chains the four subprocess skills. They are guidance prompts, not a controller or state machine, so the orchestrator adapts them to the task. Contained, low-risk changes stay in one pass; complex or high-risk changes use relevant knowledge-graph context when available, reviewed slice checkpoint commits, and repeated review/fix gates before integration. The plugin creates no workflow records, reuses one canonical branch and pull request across threads, and never merges without an explicit request.
 
-## Install
+## Install in Codex
 
 ```bash
 codex plugin marketplace add BlessmanCEO/software-engineering-loop
@@ -25,6 +25,22 @@ Use $software-engineering-scout-plan to investigate and plan this task.
 Use $software-engineering-implement-integrate to build this task.
 Use $software-engineering-audit-fix to audit and repair this change.
 Use $software-engineering-retrospective to explain and critique a completed task.
+```
+
+## Install in Pi
+
+```bash
+pi install git:github.com/BlessmanCEO/software-engineering-loop
+```
+
+Start or restart Pi, then invoke one skill:
+
+```text
+/skill:software-engineering-full Implement and review this coding task.
+/skill:software-engineering-scout-plan Investigate and plan this task.
+/skill:software-engineering-implement-integrate Build this coding task.
+/skill:software-engineering-audit-fix Audit and repair this change.
+/skill:software-engineering-retrospective Explain and critique this completed task.
 ```
 
 Merging remains a separate explicit action.

@@ -19,6 +19,8 @@ Run independent reviews in a fresh, read-only process for the active harness:
 - Pi commit review: `git show --format=fuller --stat --patch <commit-sha> | pi -p --no-session --no-extensions --no-skills --tools read,grep,find,ls "Review the supplied commit diff. Do not modify the repository. Return only verified findings, ordered by severity."`
 - Pi base review: `git diff --stat --patch <base-branch>...HEAD | pi -p --no-session --no-extensions --no-skills --tools read,grep,find,ls "Review the supplied branch diff. Do not modify the repository. Return only verified findings, ordered by severity."`
 
+If the current process was itself launched as an independent reviewer, return findings to its caller; never launch another review process.
+
 ## Prompt Chain
 
 1. **Orchestrate:** Read applicable `AGENTS.md`, inspect the worktree and immediate code path, and define the objective, acceptance criteria, constraints, affected surface, done condition, canonical branch, and base branch. Keep a matching current branch, resume a clearly matching open pull request or remote branch, or create one task branch only when no match exists.

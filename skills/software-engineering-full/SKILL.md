@@ -15,9 +15,13 @@ Do not create workflow records, controller state, or evidence manifests. Preserv
 
 Run independent reviews in a fresh, read-only process for the active harness:
 
-- Codex commit/base review: `codex review --commit <commit-sha>` or `codex review --base <base-branch>`.
-- Pi commit review: `git show --format=fuller --stat --patch <commit-sha> | pi -p --no-session --no-extensions --no-skills --tools read,grep,find,ls "Review the supplied commit diff. Do not modify the repository. Return only verified findings, ordered by severity."`
-- Pi base review: `git diff --stat --patch <base-branch>...HEAD | pi -p --no-session --no-extensions --no-skills --tools read,grep,find,ls "Review the supplied branch diff. Do not modify the repository. Return only verified findings, ordered by severity."`
+First resolve each target with `git rev-parse --verify`, passing `<candidate>^{commit}` as one shell-escaped argument. Use only the resulting full hexadecimal commit ID in these commands:
+
+- Codex commit/base review: `codex review --commit <commit-id>` or `codex review --base <base-commit-id>`.
+- Pi POSIX commit review: `REVIEW_DIFF=$(mktemp) && trap 'unlink "$REVIEW_DIFF"' 0 && git -c i18n.logOutputEncoding=utf-8 show --output="$REVIEW_DIFF" --format=fuller --stat --patch <commit-id> && pi -p --no-session --no-extensions --no-skills --tools read,grep,find,ls @"$REVIEW_DIFF" "Review the supplied commit diff. Do not modify the repository. Return only verified findings, ordered by severity."`
+- Pi POSIX base review: `REVIEW_DIFF=$(mktemp) && trap 'unlink "$REVIEW_DIFF"' 0 && git diff --output="$REVIEW_DIFF" --stat --patch <base-commit-id>...HEAD -- && pi -p --no-session --no-extensions --no-skills --tools read,grep,find,ls @"$REVIEW_DIFF" "Review the supplied branch diff. Do not modify the repository. Return only verified findings, ordered by severity."`
+
+On PowerShell, create `$ReviewDiff` with `New-TemporaryFile`, have Git write it directly with `--output="$($ReviewDiff.FullName)"`, check `$LASTEXITCODE` after both Git and Pi, pass the file as `("@" + $ReviewDiff.FullName)`, and remove it in `finally`. Use `git -c i18n.logOutputEncoding=utf-8 show --format=fuller --stat --patch <commit-id>` for a commit review or `git diff --stat --patch <base-commit-id>...HEAD --` for a base review.
 
 If the current process was itself launched as an independent reviewer, return findings to its caller; never launch another review process.
 

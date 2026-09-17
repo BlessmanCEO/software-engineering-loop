@@ -1,4 +1,4 @@
 interface:
   display_name: "PR Babysitter"
   short_description: "Monitor PR reviews and CI; fix real defects"
-  default_prompt: "Use $pr-babysit to monitor this existing PR, investigate feedback, and fix genuine in-scope defects until the current head has a clean configured review and successful required checks, or an explicit terminal condition applies. Obtain explicit authorization before committing, pushing, posting, or triggering remote work. Never merge."
+  default_prompt: "Use $pr-babysit to monitor this PR and autonomously investigate, fix, test, commit, push, reply, trigger documented reviews, and resolve verified fixed threads. Continue until the current head has a clean configured review and successful required checks, one hour elapses, or safe progress is blocked. Respect explicit restrictions. Human approval is reserved for merging; never merge during babysitting."

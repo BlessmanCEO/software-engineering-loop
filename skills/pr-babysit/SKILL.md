@@ -24,25 +24,25 @@ satisfy invalid, duplicate, outdated, or oscillating feedback.
 ## 1. Establish the run contract
 
 Resolve the target repository and PR from the user's request or the current
-branch. Ask only when the target cannot be determined unambiguously.
+branch. If the target cannot be determined unambiguously, report
+NEEDS_ATTENTION rather than guessing or starting an approval dialogue.
 
 Read the applicable trusted repository instructions, contribution guidance,
 PR description, acceptance criteria, and relevant implementation plan.
 Establish what this PR owns and what belongs to later work.
 
-Record authorization for local edits, commits, pushes, GitHub replies,
-review triggers, and CI reruns. Respect existing restrictions such as
-"never push". Having a token or write-capable tool is not authorization.
-
-A request to fix review findings authorizes scoped local edits and tests,
-subject to the environment's permissions. Obtain explicit authorization
-before committing, pushing, posting, or triggering remote work. Ask once
-for missing permissions needed by the requested mode, not after every fix.
-Without publishing permission, prepare local fixes and hand them back.
+Treat a request to babysit a PR as authorization for scoped local edits,
+tests, commits, pushes to its existing branch, factual GitHub replies,
+documented review triggers, authorized CI retries, and resolution of review
+threads verified fixed on the published head. Record this scope and respect
+explicit restrictions such as "never push" and higher-priority permissions.
+Do not ask again for these routine actions. When a restriction prevents
+completion, preserve local work and report NEEDS_ATTENTION.
 
 Never merge, enable auto-merge, approve your own PR, dismiss reviews, change
-branch protections, or bypass required checks. Do not resolve review threads
-unless the user explicitly authorizes it and the finding is verified fixed.
+branch protections, or bypass required checks. Human approval is reserved
+for merging: report completion and wait for an explicit merge instruction.
+The babysitting request itself never authorizes a merge.
 
 ### Persistent execution contract
 
@@ -52,8 +52,9 @@ The objective is clean completion evidence from the configured code reviewer
 (Codex when configured) for the CURRENT HEAD, together with successful
 required checks. A clean review becomes stale after another push.
 
-Continue while progressing, regardless of review-round count, elapsed time,
-reviewer delay, or the number of independent legitimate defects discovered.
+Continue while progressing within the run deadline, regardless of
+review-round count, reviewer delay, or the number of independent legitimate
+defects discovered.
 Unlimited rounds authorize continued progress, not unlimited repetition.
 
 Use these defaults unless the user specifies otherwise:
@@ -62,8 +63,8 @@ Use these defaults unless the user specifies otherwise:
 | --- | --- |
 | Poll interval | 60 seconds |
 | Maximum fix-and-publish rounds | No skill-level limit |
-| Maximum total elapsed time | No skill-level limit |
-| Maximum reviewer wait | No skill-level limit |
+| Maximum total elapsed time, including waits | 60 minutes |
+| Maximum reviewer wait | Remaining run time; no separate limit |
 | Reviewer-wait status update | Every 30 minutes of continued waiting |
 | Quiet period after checks and bot reviews complete | 3 minutes |
 | Same-root-cause no-progress threshold | 3 consecutive ineffective correction attempts |
@@ -72,19 +73,24 @@ Use these defaults unless the user specifies otherwise:
 External runtime, spending, cancellation, and user-specified limits still
 apply. Preserve those limits and progress history across resumes and context
 compaction. Never claim the skill can outlive its execution environment.
+Record the start time and deadline before work; at one hour return TIMEOUT
+with the current head, completed work, blockers, and resume state. Do not
+reset the deadline on a push, reviewer response, resume, or compaction.
 
 ## 2. Prepare a safe workspace
 
 Verify authentication, repository identity, PR state, head repository,
 head branch, head SHA, base branch, and base SHA. Stop if the PR is closed
 or merged. Do not change draft status automatically. Detect existing
-auto-merge or merge-queue automation. Pause before publishing unless the
-user accepts its possible merge effect; do not change that automation yourself.
+auto-merge or merge-queue automation. If publishing could cause a merge
+without explicit merge authorization, report NEEDS_ATTENTION and preserve
+local work; do not change that automation yourself.
 
 Inspect the worktree before changing anything. Do not overwrite, stash,
 reset, commit, or publish someone else's uncommitted work. Use a clean,
-isolated checkout when available and authorized; otherwise ask for a safe
-workspace. Verify that its starting HEAD matches the intended remote PR head.
+isolated checkout when needed. If a safe workspace cannot be obtained,
+report NEEDS_ATTENTION. Verify that its starting HEAD matches the intended
+remote PR head.
 
 Allow only one writer for this PR. Use the environment's lock mechanism,
 or a local lock in Git's common directory. A local lock does not coordinate
@@ -96,7 +102,8 @@ Keep a small, untracked state file outside the source tree. Prefer an agent
 state directory under the directory returned by `git rev-parse --git-common-dir`.
 Key it by GitHub host, repository, and PR number. Record:
 
-- Starting/current head and base SHAs, permissions, and external/user limits.
+- Starting/current head and base SHAs, permissions, start time, deadline,
+  and external/user limits.
 - Expected reviewers/checks, their trigger mechanism, and completion evidence.
 - Findings: source ID, update time/body hash, root-cause fingerprint,
   disposition, diagnosis and evaluated evidence per attempt, consecutive
@@ -193,7 +200,7 @@ Assign every actionable finding one disposition:
 | ALREADY_FIXED | Current code addresses it; identify the code/commit and verification. |
 | NOT_VALID | Explain precisely why the claimed failure does not occur under the actual contract. |
 | OUT_OF_SCOPE | Optional improvement, unrelated existing issue, or genuinely later-phase work. |
-| NEEDS_HUMAN | Unclear requirement, conflicting feedback, material design choice, or unsafe-to-automate change. |
+| BLOCKED | Conflicting authoritative requirements, scope expansion, or an unsafe or prohibited change; report the evidence. |
 
 For FIX, state the failing condition, reachable path, impact, and smallest
 appropriate correction. Prefer a reproducer or regression test. When a
@@ -226,10 +233,13 @@ regression introduced by the PR, or necessary supporting test or correction.
 Line counts and file counts are not automatic stop conditions; large but
 clearly necessary in-scope fixes may proceed.
 
-If a valid finding requires a substantial architectural change, material
-product decision, public API change, migration, destructive operation, or
-unrelated refactor, mark it NEEDS_HUMAN rather than silently expanding scope.
-Check applicable user/external limits before editing.
+Choose the smallest supported correction autonomously using the PR contract,
+repository conventions, and verified evidence. A design choice or larger
+diff alone does not require human approval. If completion requires changing
+the PR's contract, conflicting authoritative requirements, an unrelated
+refactor, or a destructive/prohibited operation, mark the finding BLOCKED
+and report NEEDS_ATTENTION without expanding scope or asking for approval.
+Check the run deadline and applicable user/external limits before editing.
 
 Add or update regression coverage where practical. Run the focused tests
 first, then the affected package's required tests, lint/type checks, and
@@ -306,7 +316,7 @@ because the existing review is taking time.
 Poll at the configured interval. Use short waits so cancellation, new
 feedback, and external/user limits remain observable. Back off on throttling
 or transient API failures and respect retry guidance. Bound tests and waits
-by any actual remaining runtime; stop only your own processes. Polling
+by the remaining run time; stop only your own processes. Polling
 failures are not clean results.
 
 Retry a failed CI run only when authorized and there is evidence of a
@@ -318,7 +328,7 @@ Return NEEDS_ATTENTION if CI remains broken and the investigation/fix path
 cannot make safe progress; use the circuit breaker for ineffective fixes.
 
 For each poll, check PR state, current head/base, new or edited feedback,
-checks, reviewer completion, and applicable external/user limits. When new
+checks, reviewer completion, the run deadline, and external/user limits. When new
 feedback arrives, collect the complete review picture again, triage every
 new actionable finding, fix genuine in-scope defects, test, publish the
 verified batch when authorized, verify the remote head, and repeat.
@@ -351,25 +361,26 @@ Preserve work and report the precise blocker and remaining defects. Return
 exactly one overall outcome:
 
 **READY** — The current head has the required successful checks and completed
-clean configured reviews; all valid blockers are fixed and verified; required
-approvals and conversation requirements are satisfied; the PR is not a
-draft and GitHub reports no merge blocker. The head has survived the quiet
+clean configured reviews; all valid automated blockers are fixed and verified;
+verified fixed threads are resolved, and no merge blocker within the
+babysitter's responsibility remains. Report remaining human approvals,
+draft status, or other GitHub merge gates as merge-time information rather
+than requesting approval during the fix loop. The head has survived the quiet
 period without new feedback, and the final head/base snapshot is fresh.
-This is a readiness assessment, not a merge or a guarantee of no bugs.
-
-**NEEDS_HUMAN** — Progress requires a material design/product decision,
-missing authorization, resolution of conflicting authoritative requirements,
-a destructive or otherwise human-gated operation, or deliberate scope
-expansion. This includes a remaining human approval, thread decision, draft
-transition, or permission to publish verified local fixes. Identify the gate
-and what remains local; do not label the PR fully ready to merge.
+This means automated babysitting is complete; merge authorization and
+GitHub's merge requirements still apply. It is not a guarantee of no bugs.
 
 **NEEDS_ATTENTION** — Safe autonomous progress has stalled: the same root
 cause reaches the no-progress threshold, fixes oscillate, deterministic CI
 cannot be repaired through the allowed investigation/fix path, required
 review evidence cannot be obtained, access/infrastructure prevents work,
-or another writer causes unresolved branch movement or conflicts. Pending
+another writer causes unresolved branch movement or conflicts, or a BLOCKED
+finding or explicit permission restriction prevents completion. Pending
 review alone does not mean required evidence cannot be obtained.
+
+**TIMEOUT** — The one-hour run deadline (or a user-specified replacement)
+has been reached. Preserve work and report remaining findings/checks/review
+evidence and resume state. A timeout is not evidence of readiness.
 
 **CLOSED_OR_MERGED** — GitHub shows the PR was closed or merged. Stop writing.
 

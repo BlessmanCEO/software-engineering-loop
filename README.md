@@ -7,7 +7,7 @@ This Codex plugin and Pi package provide one full recordless workflow, its four 
 - `$software-engineering-implement-integrate`: implements, validates, and integrates a complete change.
 - `$software-engineering-audit-fix`: checks bugs, security, technical debt, and process debt, then fixes and validates confirmed findings.
 - `$software-engineering-retrospective`: explains each task commit, its rationale and tradeoffs, then gives an honest verdict and a better approach where warranted.
-- `$pr-babysit`: monitors an existing PR's reviews and CI, verifies feedback, fixes genuine in-scope defects, and publishes only when authorized; never merges.
+- `$pr-babysit`: autonomously monitors an existing PR's reviews and CI, verifies feedback, fixes and publishes in-scope defects for up to one hour; merging requires separate human approval.
 
 The full workflow chains only the subprocess skills justified by the task. Low-risk work gets one final independent review, medium-risk work gets slice audits and one cumulative review, and high-risk work adds independent slice reviews. Every reviewer receives the objective, acceptance criteria, constraints, risk, and observed validation results; unchanged diffs are never reviewed twice. The full workflow creates no workflow records, reuses one canonical branch and pull request across threads, and never merges without an explicit request.
 
@@ -61,15 +61,17 @@ reply to review comments, and retrigger the configured bot reviews and CI.
 
 Fix genuine in-scope defects only. Do not implement unrelated improvements
 or later-phase architecture. Continue until the current head has a clean
-configured review and successful required checks, or an explicit terminal
-condition applies. Stop for stalled progress or a required human decision.
+configured review and successful required checks, one hour elapses, or safe
+progress is blocked. Handle routine decisions and verified thread resolution
+autonomously; human approval is reserved for merging.
 
 Do not merge. Return a summary when the PR is ready or needs my attention.
 ```
 
 In Pi, use `/skill:pr-babysit` instead of `$pr-babysit`, followed by the same
-instructions. Without publishing permission, it prepares verified local fixes
-for handoff. Monitoring lasts only while the agent is actually running.
+instructions. The babysitting request authorizes routine in-scope fixes and
+publishing unless explicitly restricted. Monitoring lasts up to one hour
+and only while the agent is actually running.
 
 ## Evaluation
 

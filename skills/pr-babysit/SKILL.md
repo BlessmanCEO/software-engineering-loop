@@ -4,10 +4,10 @@ description: >-
   Babysit an existing GitHub pull request through automated review and CI.
   Monitor feedback, verify findings against the current code, fix genuine
   in-scope problems, run tests, and commit and push when authorized. Repeat
-  until ready for human handoff or a stop condition is reached. Use when
+  until the current head has a clean configured review and successful required
+  checks, or an explicit terminal condition is reached. Use when
   asked to babysit a PR, monitor review bots, or handle review-fix cycles.
   Not for opening unrelated PRs, unlimited refactoring, or automatic merging.
-compatibility: Requires git, authenticated GitHub CLI (gh), GitHub network access, and the repository's test toolchain.
 ---
 
 # PR Babysitter
@@ -15,8 +15,11 @@ compatibility: Requires git, authenticated GitHub CLI (gh), GitHub network acces
 Own the review → investigate → fix → test → publish → recheck loop for ONE
 existing pull request.
 
-Your goal is a correct, focused PR with an honest readiness report.
-Your goal is NOT to make every reviewer happy by changing code indefinitely.
+Requires git, authenticated GitHub CLI (`gh`), GitHub network access, and
+the repository's test toolchain.
+
+Reach a clean review on the current head without blindly changing code to
+satisfy invalid, duplicate, outdated, or oscillating feedback.
 
 ## 1. Establish the run contract
 
@@ -41,23 +44,34 @@ Never merge, enable auto-merge, approve your own PR, dismiss reviews, change
 branch protections, or bypass required checks. Do not resolve review threads
 unless the user explicitly authorizes it and the finding is verified fixed.
 
+### Persistent execution contract
+
+Once authorized, continue the review → investigate → fix → test → publish →
+recheck cycle until an explicit terminal condition in section 8 is reached.
+The objective is clean completion evidence from the configured code reviewer
+(Codex when configured) for the CURRENT HEAD, together with successful
+required checks. A clean review becomes stale after another push.
+
+Continue while progressing, regardless of review-round count, elapsed time,
+reviewer delay, or the number of independent legitimate defects discovered.
+Unlimited rounds authorize continued progress, not unlimited repetition.
+
 Use these defaults unless the user specifies otherwise:
 
 | Setting | Default |
 | --- | --- |
 | Poll interval | 60 seconds |
-| Maximum fix-and-publish rounds | 5 |
-| Maximum attempts at the same root cause | 2 |
-| Maximum total elapsed time, including waits | 120 minutes |
-| Maximum wait for a reviewer on one head commit | 30 minutes |
+| Maximum fix-and-publish rounds | No skill-level limit |
+| Maximum total elapsed time | No skill-level limit |
+| Maximum reviewer wait | No skill-level limit |
+| Reviewer-wait status update | Every 30 minutes of continued waiting |
 | Quiet period after checks and bot reviews complete | 3 minutes |
-| Maximum additional diff from the starting head | 500 added/deleted lines across 12 files |
+| Same-root-cause no-progress threshold | 3 consecutive ineffective correction attempts |
 | Authorized retry of a likely transient CI failure | Once per failure signature per head |
 
-These are ceilings, not targets. Count tests and supporting files in the
-diff budget. Do not count the PR's pre-existing diff against that budget.
-Honor any smaller user, runtime, or spending limit. Never reset budgets
-because the session resumed or context was compacted.
+External runtime, spending, cancellation, and user-specified limits still
+apply. Preserve those limits and progress history across resumes and context
+compaction. Never claim the skill can outlive its execution environment.
 
 ## 2. Prepare a safe workspace
 
@@ -82,10 +96,11 @@ Keep a small, untracked state file outside the source tree. Prefer an agent
 state directory under the directory returned by `git rev-parse --git-common-dir`.
 Key it by GitHub host, repository, and PR number. Record:
 
-- Starting/current head and base SHAs, deadline, permissions, and budgets.
+- Starting/current head and base SHAs, permissions, and external/user limits.
 - Expected reviewers/checks, their trigger mechanism, and completion evidence.
-- Findings: source ID, update time/body hash, root cause, disposition, evidence,
-  attempts, relevant commits, and whether a reply has already been posted.
+- Findings: source ID, update time/body hash, root-cause fingerprint,
+  disposition, diagnosis and evaluated evidence per attempt, consecutive
+  ineffective-attempt count, relevant commits, and replies already posted.
 - Test results, published commits, outstanding blockers, and next action.
 
 Save state after each round and before pausing. On resume, revalidate live
@@ -204,8 +219,17 @@ outdated line position does not prove that the underlying defect is fixed.
 Batch related valid findings into the smallest coherent correction.
 Do not make a separate push for every individual comment unnecessarily.
 
-Before editing, check that the planned work fits the remaining scope,
-diff, attempt, and time budgets. Escalate before crossing a limit.
+### Scope guard
+
+Trace every change to an existing PR requirement, verified reviewer finding,
+regression introduced by the PR, or necessary supporting test or correction.
+Line counts and file counts are not automatic stop conditions; large but
+clearly necessary in-scope fixes may proceed.
+
+If a valid finding requires a substantial architectural change, material
+product decision, public API change, migration, destructive operation, or
+unrelated refactor, mark it NEEDS_HUMAN rather than silently expanding scope.
+Check applicable user/external limits before editing.
 
 Add or update regression coverage where practical. Run the focused tests
 first, then the affected package's required tests, lint/type checks, and
@@ -224,6 +248,29 @@ results merely to match broken behavior.
 Self-review the final patch for unintended behavior and unrelated changes.
 Stage only the intended files or hunks. Do not use blanket staging that could
 include someone else's work, secrets, logs, or the babysitter state file.
+
+### Progress circuit breaker
+
+Track each root-cause fingerprint and the evidence produced by each attempt.
+A correction counts as ineffective only when all of the following hold:
+
+1. Code changed with the intent to fix that root cause.
+2. The updated head was actually reviewed or tested.
+3. Substantially the same failure remains.
+4. New evidence does not materially change the diagnosis.
+
+Track a different defect separately; it does not count against this root
+cause. Materially new reviewer evidence, an exposed deeper cause, or a
+materially changed failing test/path starts a new progress sequence for the
+affected root cause; reset its consecutive ineffective count and update the
+diagnosis. An unevaluated correction does not increment the count or prove
+progress.
+
+After three consecutive ineffective corrections to substantially the same
+root cause, stop automatic changes to that area and return NEEDS_ATTENTION
+with the attempts and evidence. Detect oscillation between previous states
+and stop rather than reapplying the same patch. This is a no-progress circuit
+breaker, not a general review-round limit.
 
 ## 6. Publish only authorized, verified changes
 
@@ -256,27 +303,42 @@ mechanism and only when authorized. Trigger at most once per bot per head
 unless a failed trigger is confirmed. Do not launch extra reviewers just
 because the existing review is taking time.
 
-Poll at the configured interval. Use short, bounded waits so cancellation,
-new feedback, and deadlines remain observable. Back off on throttling or
-transient API failures and respect retry guidance. Count waiting time
-against the total deadline; do not treat polling failures as clean results.
-Bound tests and waits by the remaining runtime; stop only your own processes.
+Poll at the configured interval. Use short waits so cancellation, new
+feedback, and external/user limits remain observable. Back off on throttling
+or transient API failures and respect retry guidance. Bound tests and waits
+by any actual remaining runtime; stop only your own processes. Polling
+failures are not clean results.
 
 Retry a failed CI run only when authorized and there is evidence of a
 transient failure. Do not repeatedly rerun deterministic failures or approve
 workflows requiring additional trust/privileges.
 
-For each poll, check PR state, current head/base, new or edited feedback,
-checks, reviewer completion, and remaining budgets. Investigate new findings;
-fix only those that meet the triage rules, then repeat within the limits.
+Investigate deterministic CI failures and fix verified in-scope causes.
+Return NEEDS_ATTENTION if CI remains broken and the investigation/fix path
+cannot make safe progress; use the circuit breaker for ineffective fixes.
 
-Require explicit reviewer completion evidence for the current head, such
-as a completed associated check/run or a review with the matching commit.
+For each poll, check PR state, current head/base, new or edited feedback,
+checks, reviewer completion, and applicable external/user limits. When new
+feedback arrives, collect the complete review picture again, triage every
+new actionable finding, fix genuine in-scope defects, test, publish the
+verified batch when authorized, verify the remote head, and repeat.
+
+Require explicit positive clean-completion evidence for the current head,
+such as a completed associated check/run or a review with the matching
+commit that indicates no blocking findings remain. Completion with blocking
+findings starts another investigation/fix cycle.
 Silence, old approvals, a timer expiring, or an unrelated green check are
 not proof that a bot finished. If an expected integration provides no way
-to establish completion, report that limitation and pause rather than
-claiming readiness. Bots need not emit a literal "APPROVED" review if their
-documented clean-completion signal is different.
+to establish completion, return NEEDS_ATTENTION with that limitation. Bots
+need not emit a literal "APPROVED" review if their documented positive
+clean-completion signal is different.
+
+While a reviewer is pending, remain in the monitoring loop for as long as
+the execution environment is available and no terminal condition applies.
+Give a reviewer-wait status update every 30 minutes of continued waiting.
+Reviewer silence is neither approval nor failure, and waiting alone does
+not terminate the run. Trigger once per current head through the documented
+mechanism; delay alone is not a reason to retrigger.
 
 Start the quiet period only after expected checks and bot reviews complete
 and no actionable findings remain. Reset it on new feedback or head/base
@@ -284,38 +346,41 @@ changes. Re-fetch everything needed for readiness at the end of the period.
 
 ## 8. Stop conditions and outcome
 
-Do not continue autonomously when:
-
-- The same root cause survives two correction attempts, or fixes oscillate.
-- A proposed change exceeds scope/budgets or needs a material design decision.
-- Access, infrastructure, conflicts, or another writer prevent safe progress.
-- The runtime/user stops the task, a deadline expires, or the PR closes/merges.
-
-Preserve work and report the precise blocker. Do not abandon a known defect
-silently, and do not extend your own limits to get a green status.
-
-Return exactly one overall outcome:
+Stop autonomous babysitting only for one of the following terminal conditions.
+Preserve work and report the precise blocker and remaining defects. Return
+exactly one overall outcome:
 
 **READY** — The current head has the required successful checks and completed
-expected bot reviews; all valid blockers are fixed and verified; required
+clean configured reviews; all valid blockers are fixed and verified; required
 approvals and conversation requirements are satisfied; the PR is not a
-draft and GitHub reports no merge blocker. The final head/base snapshot is
-fresh. This is a readiness assessment, not a merge or a guarantee of no bugs.
+draft and GitHub reports no merge blocker. The head has survived the quiet
+period without new feedback, and the final head/base snapshot is fresh.
+This is a readiness assessment, not a merge or a guarantee of no bugs.
 
-**AWAITING_HUMAN** — Automated work is complete, but a human approval,
-thread decision, draft transition, or other explicitly human gate remains.
-Identify the gate. Do not label the PR fully ready to merge.
+**NEEDS_HUMAN** — Progress requires a material design/product decision,
+missing authorization, resolution of conflicting authoritative requirements,
+a destructive or otherwise human-gated operation, or deliberate scope
+expansion. This includes a remaining human approval, thread decision, draft
+transition, or permission to publish verified local fixes. Identify the gate
+and what remains local; do not label the PR fully ready to merge.
 
-**LOCAL_FIXES_READY** — Verified local changes exist, but the run lacks
-permission to commit or publish them. State exactly what remains local.
-
-**NEEDS_ATTENTION** — A defect, uncertainty, conflict, inaccessible required
-signal, or failed verification prevents safe automated completion.
-
-**PAUSED_LIMIT** — A round, attempt, diff, reviewer-wait, runtime, or spending
-limit was reached. Include remaining work and the state-file location.
+**NEEDS_ATTENTION** — Safe autonomous progress has stalled: the same root
+cause reaches the no-progress threshold, fixes oscillate, deterministic CI
+cannot be repaired through the allowed investigation/fix path, required
+review evidence cannot be obtained, access/infrastructure prevents work,
+or another writer causes unresolved branch movement or conflicts. Pending
+review alone does not mean required evidence cannot be obtained.
 
 **CLOSED_OR_MERGED** — GitHub shows the PR was closed or merged. Stop writing.
+
+**EXTERNAL_STOP** — The user cancels, the execution environment terminates,
+an external runtime/spending or user-specified limit is reached, or a
+higher-priority governing restriction requires termination. Report when the
+environment permits; an external stop is not evidence of readiness.
+
+Optimize for convergence: ten cycles fixing different genuine defects are
+healthy progress; three substantially identical ineffective corrections to
+the same failure are not. Cycle count itself is not a reason to stop.
 
 Provide a compact final report:
 

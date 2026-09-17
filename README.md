@@ -1,6 +1,6 @@
 # Software Engineering Workflows
 
-This Codex plugin and Pi package provide one full recordless workflow, its four independently invocable prompt chains, and a bounded PR babysitter.
+This Codex plugin and Pi package provide one full recordless workflow, its four independently invocable prompt chains, and a persistent PR babysitter.
 
 - `$software-engineering-full`: chooses low, medium, or high-risk review gates, implements coherent vertical slices, validates and independently reviews only the required diffs, retrospectively critiques substantial work, and publishes or updates one pull request.
 - `$software-engineering-scout-plan`: scouts, plans, or does both when the task has real uncertainty, using relevant `.understand-anything` graph context for wider-system discovery when available.
@@ -60,8 +60,9 @@ You may edit code, run tests, commit, push to the existing PR branch,
 reply to review comments, and retrigger the configured bot reviews and CI.
 
 Fix genuine in-scope defects only. Do not implement unrelated improvements
-or later-phase architecture. Stop after five correction rounds, or earlier
-if the same issue keeps recurring.
+or later-phase architecture. Continue until the current head has a clean
+configured review and successful required checks, or an explicit terminal
+condition applies. Stop for stalled progress or a required human decision.
 
 Do not merge. Return a summary when the PR is ready or needs my attention.
 ```
